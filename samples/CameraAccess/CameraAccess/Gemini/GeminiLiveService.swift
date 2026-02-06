@@ -21,50 +21,91 @@ class GeminiLiveService: ObservableObject {
 
   private var webSocketTask: URLSessionWebSocketTask?
   private var receiveTask: Task<Void, Never>?
-  private var setupContinuation: CheckedContinuation<Bool, Never>?
-  private let urlSession: URLSession
+  private var connectContinuation: CheckedContinuation<Bool, Never>?
+  private let delegate = WebSocketDelegate()
+  private var urlSession: URLSession!
   private let sendQueue = DispatchQueue(label: "gemini.send", qos: .userInitiated)
 
   init() {
     let config = URLSessionConfiguration.default
     config.timeoutIntervalForRequest = 30
-    self.urlSession = URLSession(configuration: config)
+    // Create session with delegate to monitor WebSocket lifecycle
+    self.urlSession = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
   }
 
-  /// Connects to Gemini Live API and waits for setupComplete or error.
-  /// Returns true if setup succeeded, false otherwise.
   func connect() async -> Bool {
     guard let url = GeminiConfig.websocketURL() else {
       connectionState = .error("No API key configured")
       return false
     }
 
+    #if DEBUG
+    NSLog("[GeminiLive] Connecting to: \(url.host ?? "unknown")...")
+    #endif
+
     connectionState = .connecting
-    webSocketTask = urlSession.webSocketTask(with: url)
-    webSocketTask?.resume()
 
-    connectionState = .settingUp
-    sendSetupMessage()
-    startReceiving()
+    // Wait for WebSocket open, then send setup, then wait for setupComplete
+    let result = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+      self.connectContinuation = continuation
 
-    // Wait for setupComplete or error (with 15s timeout)
-    let setupOk = await withCheckedContinuation { continuation in
-      self.setupContinuation = continuation
+      // Set up delegate callbacks
+      self.delegate.onOpen = { [weak self] protocol_ in
+        guard let self else { return }
+        #if DEBUG
+        NSLog("[GeminiLive] WebSocket opened (protocol: \(protocol_ ?? "none"))")
+        #endif
+        Task { @MainActor in
+          self.connectionState = .settingUp
+          self.sendSetupMessage()
+          self.startReceiving()
+        }
+      }
+
+      self.delegate.onClose = { [weak self] code, reason in
+        guard let self else { return }
+        let reasonStr = reason.flatMap { String(data: $0, encoding: .utf8) } ?? "no reason"
+        #if DEBUG
+        NSLog("[GeminiLive] WebSocket closed: code=\(code.rawValue), reason=\(reasonStr)")
+        #endif
+        Task { @MainActor in
+          self.resolveConnect(success: false)
+          self.connectionState = .disconnected
+          self.isModelSpeaking = false
+          self.onDisconnected?("Connection closed (code \(code.rawValue): \(reasonStr))")
+        }
+      }
+
+      self.delegate.onError = { [weak self] error in
+        guard let self else { return }
+        let msg = error?.localizedDescription ?? "Unknown error"
+        #if DEBUG
+        NSLog("[GeminiLive] Session error: \(msg)")
+        #endif
+        Task { @MainActor in
+          self.resolveConnect(success: false)
+          self.connectionState = .error(msg)
+          self.isModelSpeaking = false
+          self.onDisconnected?(msg)
+        }
+      }
+
+      self.webSocketTask = self.urlSession.webSocketTask(with: url)
+      self.webSocketTask?.resume()
+
+      // Timeout after 15 seconds
       Task {
         try? await Task.sleep(nanoseconds: 15_000_000_000)
-        if let cont = self.setupContinuation {
-          self.setupContinuation = nil
-          cont.resume(returning: false)
-          await MainActor.run {
-            if self.connectionState == .settingUp {
-              self.connectionState = .error("Setup timed out")
-            }
+        await MainActor.run {
+          self.resolveConnect(success: false)
+          if self.connectionState == .connecting || self.connectionState == .settingUp {
+            self.connectionState = .error("Connection timed out")
           }
         }
       }
     }
 
-    return setupOk
+    return result
   }
 
   func disconnect() {
@@ -72,13 +113,12 @@ class GeminiLiveService: ObservableObject {
     receiveTask = nil
     webSocketTask?.cancel(with: .normalClosure, reason: nil)
     webSocketTask = nil
+    delegate.onOpen = nil
+    delegate.onClose = nil
+    delegate.onError = nil
     connectionState = .disconnected
     isModelSpeaking = false
-    // Cancel any pending setup wait
-    if let cont = setupContinuation {
-      setupContinuation = nil
-      cont.resume(returning: false)
-    }
+    resolveConnect(success: false)
   }
 
   func sendAudio(data: Data) {
@@ -115,6 +155,13 @@ class GeminiLiveService: ObservableObject {
   }
 
   // MARK: - Private
+
+  private func resolveConnect(success: Bool) {
+    if let cont = connectContinuation {
+      connectContinuation = nil
+      cont.resume(returning: success)
+    }
+  }
 
   private func sendSetupMessage() {
     let setup: [String: Any] = [
@@ -176,6 +223,7 @@ class GeminiLiveService: ObservableObject {
             NSLog("[GeminiLive] Receive error: \(reason)")
             #endif
             await MainActor.run {
+              self.resolveConnect(success: false)
               self.connectionState = .disconnected
               self.isModelSpeaking = false
               self.onDisconnected?(reason)
@@ -194,18 +242,17 @@ class GeminiLiveService: ObservableObject {
     }
 
     #if DEBUG
-    // Log message keys for debugging
     let keys = json.keys.joined(separator: ", ")
-    NSLog("[GeminiLive] Received message keys: \(keys)")
+    NSLog("[GeminiLive] Message keys: \(keys)")
     #endif
 
     // Setup complete
     if json["setupComplete"] != nil {
+      #if DEBUG
+      NSLog("[GeminiLive] Setup complete - ready for audio/video")
+      #endif
       connectionState = .ready
-      if let cont = setupContinuation {
-        setupContinuation = nil
-        cont.resume(returning: true)
-      }
+      resolveConnect(success: true)
       return
     }
 
@@ -214,24 +261,22 @@ class GeminiLiveService: ObservableObject {
       let timeLeft = goAway["timeLeft"] as? [String: Any]
       let seconds = timeLeft?["seconds"] as? Int ?? 0
       #if DEBUG
-      NSLog("[GeminiLive] GoAway received, time left: \(seconds)s")
+      NSLog("[GeminiLive] GoAway, time left: \(seconds)s")
       #endif
       connectionState = .disconnected
       isModelSpeaking = false
-      onDisconnected?("Server closing connection (time left: \(seconds)s)")
+      onDisconnected?("Server closing (time left: \(seconds)s)")
       return
     }
 
     // Server content
     if let serverContent = json["serverContent"] as? [String: Any] {
-      // Check for interruption
       if let interrupted = serverContent["interrupted"] as? Bool, interrupted {
         isModelSpeaking = false
         onInterrupted?()
         return
       }
 
-      // Model turn with audio parts
       if let modelTurn = serverContent["modelTurn"] as? [String: Any],
          let parts = modelTurn["parts"] as? [[String: Any]] {
         for part in parts {
@@ -248,11 +293,45 @@ class GeminiLiveService: ObservableObject {
         }
       }
 
-      // Turn complete
       if let turnComplete = serverContent["turnComplete"] as? Bool, turnComplete {
         isModelSpeaking = false
         onTurnComplete?()
       }
+    }
+  }
+}
+
+// MARK: - WebSocket Delegate
+
+private class WebSocketDelegate: NSObject, URLSessionWebSocketDelegate {
+  var onOpen: ((String?) -> Void)?
+  var onClose: ((URLSessionWebSocketTask.CloseCode, Data?) -> Void)?
+  var onError: ((Error?) -> Void)?
+
+  func urlSession(
+    _ session: URLSession,
+    webSocketTask: URLSessionWebSocketTask,
+    didOpenWithProtocol protocol: String?
+  ) {
+    onOpen?(`protocol`)
+  }
+
+  func urlSession(
+    _ session: URLSession,
+    webSocketTask: URLSessionWebSocketTask,
+    didCloseWith closeCode: URLSessionWebSocketTask.CloseCode,
+    reason: Data?
+  ) {
+    onClose?(closeCode, reason)
+  }
+
+  func urlSession(
+    _ session: URLSession,
+    task: URLSessionTask,
+    didCompleteWithError error: Error?
+  ) {
+    if let error {
+      onError?(error)
     }
   }
 }
