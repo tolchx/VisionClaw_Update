@@ -28,8 +28,8 @@ class AudioManager {
     let session = AVAudioSession.sharedInstance()
     try session.setCategory(
       .playAndRecord,
-      mode: .voiceChat,
-      options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP]
+      mode: .videoChat,
+      options: [.defaultToSpeaker, .allowBluetooth]
     )
     try session.setPreferredSampleRate(GeminiConfig.inputAudioSampleRate)
     try session.setPreferredIOBufferDuration(0.064)
