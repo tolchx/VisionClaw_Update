@@ -25,6 +25,7 @@ struct StreamView: View {
   @Binding var isMenuOpen: Bool
   @State private var showPiP = true
   @State private var pipPosition = CGPoint(x: UIScreen.main.bounds.width - 90, y: 150)
+  @State private var messageInput: String = ""
 
   var body: some View {
     ZStack {
@@ -112,7 +113,7 @@ struct StreamView: View {
                 }
             }
 
-            ControlsView(viewModel: viewModel, geminiVM: geminiVM, webrtcVM: webrtcVM)
+            ControlsView(viewModel: viewModel, geminiVM: geminiVM, webrtcVM: webrtcVM, messageInput: $messageInput)
         }
         .padding()
         .glassPanel()
@@ -214,6 +215,7 @@ struct ControlsView: View {
   @ObservedObject var viewModel: StreamSessionViewModel
   @ObservedObject var geminiVM: GeminiSessionViewModel
   @ObservedObject var webrtcVM: WebRTCSessionViewModel
+  @Binding var messageInput: String
 
   private var micColor: Color {
       if webrtcVM.isActive { return .gray }
@@ -279,6 +281,29 @@ struct ControlsView: View {
       .opacity(webrtcVM.isActive ? 0.4 : 1.0)
       .disabled(webrtcVM.isActive)
 
+      // Text Input Box (Skill Implementation)
+      if geminiVM.isGeminiActive {
+        HStack {
+            TextField("Type message...", text: $messageInput)
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Capsule().fill(Color.white.opacity(0.1)))
+                .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                .onSubmit {
+                    sendMessage()
+                }
+            
+            Button(action: sendMessage) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .foregroundColor(messageInput.isEmpty ? .gray : .blue)
+                    .font(.title2)
+            }
+            .disabled(messageInput.isEmpty)
+        }
+        .padding(.horizontal, 8)
+      }
+
       // WebRTC Live Stream button
       Button(action: {
         Task {
@@ -299,6 +324,13 @@ struct ControlsView: View {
       .opacity(geminiVM.isGeminiActive ? 0.4 : 1.0)
       .disabled(geminiVM.isGeminiActive)
     }
+  }
+  
+  private func sendMessage() {
+      let text = messageInput.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !text.isEmpty else { return }
+      messageInput = ""
+      geminiVM.sendTextMessage(text)
   }
 }
 
@@ -436,22 +468,42 @@ struct ParticleEffect: View {
 struct ChatMessageBubble: View {
     let text: String
     let isUser: Bool
+    
     var body: some View {
-        HStack {
+        HStack(alignment: .bottom, spacing: 8) {
             if isUser { Spacer() }
+            
+            // AI Sparkles Avatar
+            if !isUser {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.purple, Color.blue],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .clipShape(Circle())
+                    .shadow(color: .purple.opacity(0.5), radius: 4)
+            }
+            
             Text(text)
                 .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(.ultraThinMaterial)
+                        .fill(Color.white.opacity(isUser ? 0.2 : 0.1))
                 )
-                .background(isUser ? Color.blue.opacity(0.3) : Color.clear)
+                .background(isUser ? Color.blue.opacity(0.1) : Color.purple.opacity(0.05))
                 .foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        .stroke(isUser ? Color.blue.opacity(0.3) : Color.purple.opacity(0.3), lineWidth: 1)
                 )
+            
             if !isUser { Spacer() }
         }
     }

@@ -185,4 +185,14 @@ class GeminiSessionViewModel: ObservableObject {
     geminiService.sendVideoFrame(image: image)
   }
 
+  func sendTextMessage(_ text: String) {
+    guard isGeminiActive, connectionState == .ready else { return }
+    geminiService.sendTextMessage(text)
+    
+    // Optimistically update the user transcript in the UI
+    Task { @MainActor in
+      self.userTranscript += self.userTranscript.isEmpty ? text : "\n\(text)"
+    }
+  }
+
 }
