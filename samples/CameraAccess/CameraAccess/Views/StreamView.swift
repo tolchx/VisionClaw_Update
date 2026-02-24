@@ -118,7 +118,6 @@ struct StreamView: View {
         .glassPanel()
         .padding()
       }
-      }
       
       // 3. Draggable PiP Video (Floating over the Agent UI)
       if showPiP {
