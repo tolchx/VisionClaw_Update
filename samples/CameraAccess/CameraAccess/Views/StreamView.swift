@@ -75,6 +75,12 @@ struct StreamView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 12) {
+                    // History messages
+                    ForEach(geminiVM.messages) { message in
+                        ChatMessageBubble(text: message.text, isUser: message.role == .user)
+                    }
+
+                    // Current real-time transcripts
                     if !geminiVM.userTranscript.isEmpty {
                         ChatMessageBubble(text: geminiVM.userTranscript, isUser: true)
                     }
@@ -84,6 +90,9 @@ struct StreamView: View {
                     Color.clear.frame(height: 1).id("bottomSpacer")
                 }
                 .padding()
+            }
+            .onChange(of: geminiVM.messages.count) { _ in
+                withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
             }
             .onChange(of: geminiVM.userTranscript) { _ in
                 withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }

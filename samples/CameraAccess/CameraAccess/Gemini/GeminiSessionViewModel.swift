@@ -9,6 +9,8 @@ class GeminiSessionViewModel: ObservableObject {
   @Published var errorMessage: String?
   @Published var userTranscript: String = ""
   @Published var aiTranscript: String = ""
+  @Published var messages: [ChatMessage] = []
+  @Published var currentSessionId = UUID()
   @Published var toolCallStatus: ToolCallStatus = .idle
   @Published var openClawConnectionState: OpenClawConnectionState = .notConfigured
   private let geminiService = GeminiLiveService()
@@ -52,7 +54,12 @@ class GeminiSessionViewModel: ObservableObject {
     geminiService.onTurnComplete = { [weak self] in
       guard let self else { return }
       Task { @MainActor in
-        // Clear user transcript when AI finishes responding
+        // When a turn is complete, if there's an AI transcript, push it as a completed message
+        if !self.aiTranscript.isEmpty {
+          let msg = ChatMessage(role: .ai, text: self.aiTranscript)
+          self.messages.append(msg)
+          self.aiTranscript = ""
+        }
         self.userTranscript = ""
       }
     }
@@ -60,14 +67,21 @@ class GeminiSessionViewModel: ObservableObject {
     geminiService.onInputTranscription = { [weak self] text in
       guard let self else { return }
       Task { @MainActor in
+        // For real-time streaming, we keep userTranscript for display
+        // but when it's "committed" (usually by the model starting to speak or turn complete), we save it
         self.userTranscript += text
-        self.aiTranscript = ""
       }
     }
 
     geminiService.onOutputTranscription = { [weak self] text in
       guard let self else { return }
       Task { @MainActor in
+        // If this is the start of a response and we have a user transcript, commit the user message
+        if self.aiTranscript.isEmpty && !self.userTranscript.isEmpty {
+          let userMsg = ChatMessage(role: .user, text: self.userTranscript)
+          self.messages.append(userMsg)
+          self.userTranscript = ""
+        }
         self.aiTranscript += text
       }
     }
@@ -120,6 +134,10 @@ class GeminiSessionViewModel: ObservableObject {
       }
     }
 
+    // Start fresh session ID
+    currentSessionId = UUID()
+    messages = []
+    
     // Setup audio
     do {
       try audioManager.setupAudioSession(useIPhoneMode: streamingMode == .iPhone)
@@ -163,6 +181,13 @@ class GeminiSessionViewModel: ObservableObject {
   }
 
   func stopSession() {
+    // Save session before clearing
+    if !messages.isEmpty {
+      let title = messages.first(where: { $0.role == .user })?.text.prefix(30) ?? "New Chat"
+      let session = ChatSession(id: currentSessionId, title: String(title), messages: messages)
+      ChatHistoryManager.shared.saveSession(session)
+    }
+    
     toolCallRouter?.cancelAll()
     toolCallRouter = nil
     audioManager.stopCapture()
@@ -174,6 +199,7 @@ class GeminiSessionViewModel: ObservableObject {
     isModelSpeaking = false
     userTranscript = ""
     aiTranscript = ""
+    messages = []
     toolCallStatus = .idle
   }
 
@@ -189,9 +215,11 @@ class GeminiSessionViewModel: ObservableObject {
     guard isGeminiActive, connectionState == .ready else { return }
     geminiService.sendTextMessage(text)
     
-    // Optimistically update the user transcript in the UI
+    // Update the message history immediately for text commands
     Task { @MainActor in
-      self.userTranscript += self.userTranscript.isEmpty ? text : "\n\(text)"
+      let msg = ChatMessage(role: .user, text: text)
+      self.messages.append(msg)
+      self.userTranscript = ""
     }
   }
 

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HamburgerMenuView: View {
     @Binding var isOpen: Bool
+    @State private var showHistory = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -25,7 +26,8 @@ struct HamburgerMenuView: View {
                     }
                     
                     MenuOption(icon: "clock.fill", title: "History") {
-                        // Action for history
+                        showHistory = true
+                        withAnimation { isOpen = false }
                     }
                     
                     MenuOption(icon: "ladybug.fill", title: "Debug Logging") {
@@ -58,6 +60,9 @@ struct HamburgerMenuView: View {
                         }
                 }
             }
+        }
+        .sheet(isPresented: $showHistory) {
+            ChatHistoryView()
         }
     }
 }
