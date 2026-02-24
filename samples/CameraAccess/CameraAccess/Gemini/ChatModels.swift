@@ -1,17 +1,17 @@
 import Foundation
 
-enum ChatRole: String, Codable {
+enum Role: String, Codable {
     case user
     case ai
 }
 
 struct ChatMessage: Identifiable, Codable {
     let id: UUID
-    let role: ChatRole
+    let role: Role
     let text: String
     let timestamp: Date
     
-    init(id: UUID = UUID(), role: ChatRole, text: String, timestamp: Date = Date()) {
+    init(id: UUID = UUID(), role: Role, text: String, timestamp: Date = Date()) {
         self.id = id
         self.role = role
         self.text = text

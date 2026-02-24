@@ -49,6 +49,10 @@
 		E6DA451D2E79A63100E3F688 /* MockDeviceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DA45182E79A63100E3F688 /* MockDeviceCardView.swift */; };
 		E6DA451E2E79A63100E3F688 /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DA45172E79A63100E3F688 /* CardView.swift */; };
 		E6DA451F2E79A63100E3F688 /* MockDeviceKitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DA451A2E79A63100E3F688 /* MockDeviceKitView.swift */; };
+		8A8A8A8A8A8A8A8A8A8A8A8A /* CameraAccess */,
+		A1B2C3D42F0A001200000001 /* ChatModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A001100000001 /* ChatModels.swift */; };
+		A1B2C3D42F0A001200000002 /* ChatHistoryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A001100000002 /* ChatHistoryManager.swift */; };
+		A1B2C3D42F0A001200000003 /* ChatHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A001100000003 /* ChatHistoryView.swift */; };
 		E6FD3BCE2EB4D53A00E7FE5D /* NonStreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6FD3BCD2EB4D53A00E7FE5D /* NonStreamView.swift */; };
 /* End PBXBuildFile section */
 
@@ -120,6 +124,9 @@
 		E6DA45182E79A63100E3F688 /* MockDeviceCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDeviceCardView.swift; sourceTree = "<group>"; };
 		E6DA451A2E79A63100E3F688 /* MockDeviceKitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDeviceKitView.swift; sourceTree = "<group>"; };
 		E6FD3BCD2EB4D53A00E7FE5D /* NonStreamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonStreamView.swift; sourceTree = "<group>"; };
+		A1B2C3D42F0A001100000001 /* ChatModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatModels.swift; sourceTree = "<group>"; };
+		A1B2C3D42F0A001100000002 /* ChatHistoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHistoryManager.swift; sourceTree = "<group>"; };
+		A1B2C3D42F0A001100000003 /* ChatHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHistoryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -193,6 +200,7 @@
 				8FD96B752E6F0A9800F56AB1 /* StreamSessionView.swift */,
 				E6A188472EB918740097D0E1 /* StreamView.swift */,
 				E6FD3BCD2EB4D53A00E7FE5D /* NonStreamView.swift */,
+				A1B2C3D42F0A001100000003 /* ChatHistoryView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -270,6 +278,8 @@
 				A1B2C3D42F0A000100000001 /* GeminiConfig.swift */,
 				A1B2C3D42F0A000100000002 /* GeminiLiveService.swift */,
 				A1B2C3D42F0A000100000004 /* GeminiSessionViewModel.swift */,
+				A1B2C3D42F0A001100000001 /* ChatModels.swift */,
+				A1B2C3D42F0A001100000002 /* ChatHistoryManager.swift */,
 			);
 			path = Gemini;
 			sourceTree = "<group>";
@@ -433,6 +443,9 @@
 				9DD894B22F4047630090B9B9 /* SettingsManager.swift in Sources */,
 				9DD894B32F4047630090B9B9 /* SettingsView.swift in Sources */,
 				A1B2C3D42F0A000200000005 /* GeminiOverlayView.swift in Sources */,
+				A1B2C3D42F0A001200000001 /* ChatModels.swift in Sources */,
+				A1B2C3D42F0A001200000002 /* ChatHistoryManager.swift in Sources */,
+				A1B2C3D42F0A001200000003 /* ChatHistoryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

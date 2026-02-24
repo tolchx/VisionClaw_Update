@@ -29,11 +29,43 @@ struct StreamView: View {
 
   var body: some View {
     ZStack {
-      // 1. Backgrounds
+      backgroundLayers
+      
+      VStack(spacing: 0) {
+        topBar
+        chatHistory
+        Spacer()
+        bottomControls
+      }
+      
+      floatingPiP
+      pipToggleButton
+    }
+    .onDisappear {
+      cleanupSessions()
+    }
+    .sheet(isPresented: $viewModel.showPhotoPreview) {
+      photoPreviewSheet
+    }
+    .alert("AI Assistant", isPresented: alertBinding(for: $geminiVM.errorMessage)) {
+      Button("OK") { geminiVM.errorMessage = nil }
+    } message: {
+      Text(geminiVM.errorMessage ?? "")
+    }
+    .alert("Live Stream", isPresented: alertBinding(for: $webrtcVM.errorMessage)) {
+      Button("OK") { webrtcVM.errorMessage = nil }
+    } message: {
+      Text(webrtcVM.errorMessage ?? "")
+    }
+  }
+
+  // MARK: - Subviews
+
+  private var backgroundLayers: some View {
+    ZStack {
       AnimatedBackground()
       ParticleEffect(particleCount: 30).opacity(0.5)
-
-      // Ensure a background exists if there is no WebRTC PiP or camera Feed
+      
       if !webrtcVM.isActive || webrtcVM.connectionState != .connected {
           if viewModel.currentVideoFrame == nil || !viewModel.hasReceivedFirstFrame {
               ProgressView()
@@ -41,178 +73,149 @@ struct StreamView: View {
                   .foregroundColor(.white)
           }
       }
+    }
+  }
 
-      // 2. Main Interactive UI
-      VStack(spacing: 0) {
-        // Top Bar
-        HStack {
-            Button {
-                withAnimation { isMenuOpen.toggle() }
-            } label: {
-                Image(systemName: "line.horizontal.3")
-                    .foregroundColor(.white)
-            }
-            .glassmorphismPill()
-            
-            Spacer()
-            
-            if geminiVM.isGeminiActive {
-                GeminiStatusBar(geminiVM: geminiVM)
-                    .glassmorphismPill()
-            } else if webrtcVM.isActive {
-                WebRTCStatusBar(webrtcVM: webrtcVM)
-                    .glassmorphismPill()
-            }
-            
-            Spacer()
-            
-            // Placeholder for symmetry
-            Color.clear.frame(width: 44, height: 44)
+  private var topBar: some View {
+    HStack {
+        Button {
+            withAnimation { isMenuOpen.toggle() }
+        } label: {
+            Image(systemName: "line.horizontal.3")
+                .foregroundColor(.white)
         }
-        .padding()
-
-        // Chat History
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    // History messages
-                    ForEach(geminiVM.messages) { message in
-                        ChatMessageBubble(text: message.text, isUser: message.role == .user)
-                    }
-
-                    // Current real-time transcripts
-                    if !geminiVM.userTranscript.isEmpty {
-                        ChatMessageBubble(text: geminiVM.userTranscript, isUser: true)
-                    }
-                    if !geminiVM.aiTranscript.isEmpty {
-                        ChatMessageBubble(text: geminiVM.aiTranscript, isUser: false)
-                    }
-                    Color.clear.frame(height: 1).id("bottomSpacer")
-                }
-                .padding()
-            }
-            .onChange(of: geminiVM.messages.count) { _ in
-                withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
-            }
-            .onChange(of: geminiVM.userTranscript) { _ in
-                withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
-            }
-            .onChange(of: geminiVM.aiTranscript) { _ in
-                withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
-            }
+        .glassmorphismPill()
+        
+        Spacer()
+        
+        if geminiVM.isGeminiActive {
+            GeminiStatusBar(geminiVM: geminiVM)
+                .glassmorphismPill()
+        } else if webrtcVM.isActive {
+            WebRTCStatusBar(webrtcVM: webrtcVM)
+                .glassmorphismPill()
         }
         
         Spacer()
+        
+        Color.clear.frame(width: 44, height: 44)
+    }
+    .padding()
+  }
 
-        // Text Input Box / Bottom Controls
-        VStack(spacing: 12) {
-            if geminiVM.isGeminiActive {
-                if geminiVM.toolCallStatus != .idle {
-                    ToolCallStatusView(status: geminiVM.toolCallStatus)
+  private var chatHistory: some View {
+    ScrollViewReader { proxy in
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(geminiVM.messages) { message in
+                    ChatMessageBubble(text: message.text, isUser: message.role == .user)
                 }
-                
-                if geminiVM.isModelSpeaking {
-                    HStack(spacing: 8) {
-                        Image(systemName: "speaker.wave.2.fill")
-                            .foregroundColor(.white)
-                            .font(.system(size: 14))
-                        SpeakingIndicator()
-                    }
-                    .glassmorphismPill()
+
+                if !geminiVM.userTranscript.isEmpty {
+                    ChatMessageBubble(text: geminiVM.userTranscript, isUser: true)
                 }
+                if !geminiVM.aiTranscript.isEmpty {
+                    ChatMessageBubble(text: geminiVM.aiTranscript, isUser: false)
+                }
+                Color.clear.frame(height: 1).id("bottomSpacer")
             }
+            .padding()
+        }
+        .onChange(of: geminiVM.messages.count) { _ in
+            withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+        }
+        .onChange(of: geminiVM.userTranscript) { _ in
+            withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+        }
+        .onChange(of: geminiVM.aiTranscript) { _ in
+            withAnimation { proxy.scrollTo("bottomSpacer", anchor: .bottom) }
+        }
+    }
+  }
 
-            ControlsView(viewModel: viewModel, geminiVM: geminiVM, webrtcVM: webrtcVM, messageInput: $messageInput)
-        }
-        .padding(.bottom, 8)
-      }
-      
-      // 3. Draggable PiP Video (Floating over the Agent UI)
-      if showPiP {
-          if webrtcVM.isActive && webrtcVM.connectionState == .connected {
-              DraggablePiPView(
-                  position: $pipPosition,
-                  isShowing: $showPiP
-              ) {
-                  PiPVideoView(
-                      localFrame: viewModel.currentVideoFrame,
-                      remoteVideoTrack: webrtcVM.remoteVideoTrack,
-                      hasRemoteVideo: webrtcVM.hasRemoteVideo
-                  )
-              }
-          } else if let videoFrame = viewModel.currentVideoFrame, viewModel.hasReceivedFirstFrame {
-              DraggablePiPView(
-                  position: $pipPosition,
-                  isShowing: $showPiP
-              ) {
-                  Image(uiImage: videoFrame)
-                      .resizable()
-                      .aspectRatio(contentMode: .fill)
-              }
-          }
-      }
-      
-      // Toggle button if PiP was closed
-      if !showPiP && ((viewModel.currentVideoFrame != nil && viewModel.hasReceivedFirstFrame) || (webrtcVM.isActive && webrtcVM.connectionState == .connected)) {
-          VStack {
-              Spacer()
-              HStack {
-                  Spacer()
-                  Button(action: {
-                      withAnimation { showPiP = true }
-                  }) {
-                      Image(systemName: "video.fill")
-                          .foregroundColor(.white)
-                          .padding(12)
-                          .background(Circle().fill(.ultraThinMaterial))
-                          .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1))
-                  }
-                  .padding()
-              }
-          }
-      }
-    }
-    .onDisappear {
-      Task {
-        if viewModel.streamingStatus != .stopped {
-          await viewModel.stopSession()
-        }
+  private var bottomControls: some View {
+    VStack(spacing: 12) {
         if geminiVM.isGeminiActive {
-          geminiVM.stopSession()
+            if geminiVM.toolCallStatus != .idle {
+                ToolCallStatusView(status: geminiVM.toolCallStatus)
+            }
+            
+            if geminiVM.isModelSpeaking {
+                HStack(spacing: 8) {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .foregroundColor(.white)
+                        .font(.system(size: 14))
+                    SpeakingIndicator()
+                }
+                .glassmorphismPill()
+            }
         }
-        if webrtcVM.isActive {
-          webrtcVM.stopSession()
+
+        ControlsView(viewModel: viewModel, geminiVM: geminiVM, webrtcVM: webrtcVM, messageInput: $messageInput)
+    }
+    .padding(.bottom, 8)
+  }
+
+  @ViewBuilder
+  private var floatingPiP: some View {
+    if showPiP {
+        if webrtcVM.isActive && webrtcVM.connectionState == .connected {
+            DraggablePiPView(position: $pipPosition, isShowing: $showPiP) {
+                PiPVideoView(
+                    localFrame: viewModel.currentVideoFrame,
+                    remoteVideoTrack: webrtcVM.remoteVideoTrack,
+                    hasRemoteVideo: webrtcVM.hasRemoteVideo
+                )
+            }
+        } else if let videoFrame = viewModel.currentVideoFrame, viewModel.hasReceivedFirstFrame {
+            DraggablePiPView(position: $pipPosition, isShowing: $showPiP) {
+                Image(uiImage: videoFrame)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            }
         }
-      }
     }
-    // Show captured photos
-    .sheet(isPresented: $viewModel.showPhotoPreview) {
-      if let photo = viewModel.capturedPhoto {
-        PhotoPreviewView(
-          photo: photo,
-          onDismiss: {
-            viewModel.dismissPhotoPreview()
-          }
-        )
-      }
+  }
+
+  @ViewBuilder
+  private var pipToggleButton: some View {
+    if !showPiP && ((viewModel.currentVideoFrame != nil && viewModel.hasReceivedFirstFrame) || (webrtcVM.isActive && webrtcVM.connectionState == .connected)) {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                Button(action: { withAnimation { showPiP = true } }) {
+                    Image(systemName: "video.fill")
+                        .foregroundColor(.white)
+                        .padding(12)
+                        .background(Circle().fill(.ultraThinMaterial))
+                        .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                }
+                .padding()
+            }
+        }
     }
-    // Gemini error alert
-    .alert("AI Assistant", isPresented: Binding(
-      get: { geminiVM.errorMessage != nil },
-      set: { if !$0 { geminiVM.errorMessage = nil } }
-    )) {
-      Button("OK") { geminiVM.errorMessage = nil }
-    } message: {
-      Text(geminiVM.errorMessage ?? "")
+  }
+
+  @ViewBuilder
+  private var photoPreviewSheet: some View {
+    if let photo = viewModel.capturedPhoto {
+      PhotoPreviewView(photo: photo, onDismiss: { viewModel.dismissPhotoPreview() })
     }
-    // WebRTC error alert
-    .alert("Live Stream", isPresented: Binding(
-      get: { webrtcVM.errorMessage != nil },
-      set: { if !$0 { webrtcVM.errorMessage = nil } }
-    )) {
-      Button("OK") { webrtcVM.errorMessage = nil }
-    } message: {
-      Text(webrtcVM.errorMessage ?? "")
+  }
+
+  private func alertBinding(for message: Binding<String?>) -> Binding<Bool> {
+    Binding(
+      get: { message.wrappedValue != nil },
+      set: { if !$0 { message.wrappedValue = nil } }
+    )
+  }
+
+  private func cleanupSessions() {
+    Task {
+      if viewModel.streamingStatus != .stopped { await viewModel.stopSession() }
+      if geminiVM.isGeminiActive { geminiVM.stopSession() }
+      if webrtcVM.isActive { webrtcVM.stopSession() }
     }
   }
 }
