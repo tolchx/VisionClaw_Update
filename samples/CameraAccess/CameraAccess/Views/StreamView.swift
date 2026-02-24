@@ -115,9 +115,7 @@ struct StreamView: View {
 
             ControlsView(viewModel: viewModel, geminiVM: geminiVM, webrtcVM: webrtcVM, messageInput: $messageInput)
         }
-        .padding()
-        .glassPanel()
-        .padding()
+        .padding(.bottom, 8)
       }
       
       // 3. Draggable PiP Video (Floating over the Agent UI)
@@ -235,94 +233,113 @@ struct ControlsView: View {
   }
 
   var body: some View {
-    HStack(spacing: 20) {
-      Button(action: {
-          Task { await viewModel.stopSession() }
-      }) {
-          Image(systemName: "stop.fill")
-              .foregroundColor(.red)
-              .font(.title2)
-              .frame(width: 50, height: 50)
-              .background(Circle().fill(.ultraThinMaterial))
-              .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 1))
-      }
-
-      if viewModel.streamingMode == .glasses {
+    VStack(spacing: 16) {
+      // 1. Utility Buttons Row (Secondary actions)
+      HStack(spacing: 25) {
+        // Stop Button
         Button(action: {
-            viewModel.capturePhoto()
+            Task { await viewModel.stopSession() }
         }) {
-            Image(systemName: "camera.fill")
-                .foregroundColor(.white)
-                .font(.title2)
-                .frame(width: 50, height: 50)
+            Image(systemName: "stop.fill")
+                .foregroundColor(.red)
+                .font(.title3)
+                .frame(width: 44, height: 44)
                 .background(Circle().fill(.ultraThinMaterial))
                 .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 1))
         }
-      }
 
-      // Gemini AI Button
-      Button(action: {
-        Task {
-          if geminiVM.isGeminiActive {
-            geminiVM.stopSession()
-          } else {
-            await geminiVM.startSession()
+        // Camera Button (if using glasses)
+        if viewModel.streamingMode == .glasses {
+          Button(action: {
+              viewModel.capturePhoto()
+          }) {
+              Image(systemName: "camera.fill")
+                  .foregroundColor(.white)
+                  .font(.title3)
+                  .frame(width: 44, height: 44)
+                  .background(Circle().fill(.ultraThinMaterial))
+                  .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 1))
           }
         }
-      }) {
-          Image(systemName: geminiVM.isGeminiActive ? "waveform" : "mic.fill")
-              .foregroundColor(.white)
-              .font(.title)
-              .frame(width: 65, height: 65)
-              .background(Circle().fill(micColor))
-              .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 2))
-              .shadow(color: micColor.opacity(0.5), radius: 10, x: 0, y: 0)
-      }
-      .opacity(webrtcVM.isActive ? 0.4 : 1.0)
-      .disabled(webrtcVM.isActive)
 
-      // Text Input Box (Skill Implementation)
-      if geminiVM.isGeminiActive {
+        // WebRTC Live Stream button
+        Button(action: {
+          Task {
+            if webrtcVM.isActive {
+              webrtcVM.stopSession()
+            } else {
+              await webrtcVM.startSession()
+            }
+          }
+        }) {
+            Image(systemName: "antenna.radiowaves.left.and.right")
+                .foregroundColor(.white)
+                .font(.title3)
+                .frame(width: 44, height: 44)
+                .background(Circle().fill(webrtcVM.isActive ? AnyShapeStyle(Color.blue) : AnyShapeStyle(.ultraThinMaterial)))
+                .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 1))
+        }
+        .opacity(geminiVM.isGeminiActive ? 0.4 : 1.0)
+        .disabled(geminiVM.isGeminiActive)
+      }
+      .padding(.top, 8)
+
+      // 2. Chat Interaction Row (Main action)
+      HStack(spacing: 12) {
+        // Gemini AI / Mic Button
+        Button(action: {
+          Task {
+            if geminiVM.isGeminiActive {
+              geminiVM.stopSession()
+            } else {
+              await geminiVM.startSession()
+            }
+          }
+        }) {
+            ZStack {
+                Circle()
+                    .fill(micColor)
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: geminiVM.isGeminiActive ? "waveform" : "mic.fill")
+                    .foregroundColor(.white)
+                    .font(.title3)
+            }
+            .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1.5))
+            .shadow(color: micColor.opacity(0.3), radius: 6)
+        }
+        .opacity(webrtcVM.isActive ? 0.4 : 1.0)
+        .disabled(webrtcVM.isActive)
+
+        // Full-Width Text Input Box
         HStack {
             TextField("Type message...", text: $messageInput)
                 .foregroundColor(.white)
                 .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(Capsule().fill(Color.white.opacity(0.1)))
-                .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                .padding(.vertical, 12)
+                .submitLabel(.send)
                 .onSubmit {
                     sendMessage()
                 }
             
-            Button(action: sendMessage) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .foregroundColor(messageInput.isEmpty ? .gray : .blue)
-                    .font(.title2)
+            if !messageInput.isEmpty {
+                Button(action: sendMessage) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .foregroundColor(.blue)
+                        .font(.system(size: 32))
+                        .padding(.trailing, 8)
+                }
+                .transition(.scale.combined(with: .opacity))
             }
-            .disabled(messageInput.isEmpty)
         }
-        .padding(.horizontal, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(.ultraThinMaterial)
+                .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.white.opacity(0.15), lineWidth: 1))
+        )
+        .animation(.spring(), value: messageInput.isEmpty)
       }
-
-      // WebRTC Live Stream button
-      Button(action: {
-        Task {
-          if webrtcVM.isActive {
-            webrtcVM.stopSession()
-          } else {
-            await webrtcVM.startSession()
-          }
-        }
-      }) {
-          Image(systemName: "antenna.radiowaves.left.and.right")
-              .foregroundColor(.white)
-              .font(.title2)
-              .frame(width: 50, height: 50)
-              .background(Circle().fill(webrtcVM.isActive ? AnyShapeStyle(Color.blue) : AnyShapeStyle(.ultraThinMaterial)))
-              .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 1))
-      }
-      .opacity(geminiVM.isGeminiActive ? 0.4 : 1.0)
-      .disabled(geminiVM.isGeminiActive)
+      .padding(.horizontal)
     }
   }
   
