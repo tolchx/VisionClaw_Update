@@ -70,7 +70,7 @@ struct StreamSessionView: View {
       viewModel.webrtcSessionVM = webrtcVM
       geminiVM.streamingMode = viewModel.streamingMode
     }
-    .onChange(of: viewModel.streamingMode) { newMode in
+    .onChange(of: viewModel.streamingMode) { _, newMode in
       geminiVM.streamingMode = newMode
     }
     .onAppear {

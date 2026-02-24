@@ -116,7 +116,7 @@ struct StreamView: View {
         // Text Input Box / Bottom Controls
         VStack(spacing: 12) {
             if geminiVM.isGeminiActive {
-                if geminiVM.toolCallStatus != .none {
+                if geminiVM.toolCallStatus != .idle {
                     ToolCallStatusView(status: geminiVM.toolCallStatus)
                 }
                 
@@ -195,12 +195,12 @@ struct ControlsView: View {
       
       switch geminiVM.connectionState {
       case .connecting: return .orange
-      case .connected:
+      case .ready:
           if geminiVM.isModelSpeaking {
               return .green
           } else {
               // Simple heuristic for thinking/listening
-              return geminiVM.toolCallStatus != .none ? .purple : .blue
+              return geminiVM.toolCallStatus != .idle ? .purple : .blue
           }
       default: return .gray
       }

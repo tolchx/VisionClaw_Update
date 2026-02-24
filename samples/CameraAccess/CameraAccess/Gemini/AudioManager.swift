@@ -86,7 +86,6 @@ class AudioManager {
 
       tapCount += 1
       let pcmData: Data
-      let rms: Float
 
       if let converter {
         let resampleFormat = AVAudioFormat(
@@ -100,10 +99,8 @@ class AudioManager {
           return
         }
         pcmData = self.float32BufferToInt16Data(resampled)
-        rms = self.computeRMS(resampled)
       } else {
         pcmData = self.float32BufferToInt16Data(buffer)
-        rms = self.computeRMS(buffer)
       }
 
       // Log first 3 taps, then every ~2 seconds (every 8th tap at 4096 frames/16kHz = ~256ms each)
