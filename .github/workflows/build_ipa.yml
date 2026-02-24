@@ -23,6 +23,13 @@ jobs:
       - name: Build Unsigned App
         run: |
           cd samples/CameraAccess
+          # Create a dummy Secrets.swift file to allow the build to succeed
+          if [ -f CameraAccess/Secrets.swift.example ]; then
+            cp CameraAccess/Secrets.swift.example CameraAccess/Secrets.swift
+          else
+            echo "struct Secrets { static let apiKey = \"DUMMY_KEY\" }" > CameraAccess/Secrets.swift
+          fi
+          
           xcodebuild clean build \
             -project CameraAccess.xcodeproj \
             -scheme CameraAccess \
