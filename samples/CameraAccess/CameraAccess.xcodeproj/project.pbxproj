@@ -49,7 +49,6 @@
 		E6DA451D2E79A63100E3F688 /* MockDeviceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DA45182E79A63100E3F688 /* MockDeviceCardView.swift */; };
 		E6DA451E2E79A63100E3F688 /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DA45172E79A63100E3F688 /* CardView.swift */; };
 		E6DA451F2E79A63100E3F688 /* MockDeviceKitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DA451A2E79A63100E3F688 /* MockDeviceKitView.swift */; };
-		8A8A8A8A8A8A8A8A8A8A8A8A /* CameraAccess */,
 		A1B2C3D42F0A001200000001 /* ChatModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A001100000001 /* ChatModels.swift */; };
 		A1B2C3D42F0A001200000002 /* ChatHistoryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A001100000002 /* ChatHistoryManager.swift */; };
 		A1B2C3D42F0A001200000003 /* ChatHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A001100000003 /* ChatHistoryView.swift */; };
