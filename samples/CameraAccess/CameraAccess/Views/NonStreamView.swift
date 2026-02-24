@@ -13,6 +13,8 @@
 // Default screen has been merged into StreamSessionView / HamburgerMenuView
 // Keeping just the GettingStarted overlays for legacy presentation if needed.
 
+import SwiftUI
+
 struct GettingStartedSheetView: View {
   @Environment(\.dismiss) var dismiss
   @Binding var height: CGFloat

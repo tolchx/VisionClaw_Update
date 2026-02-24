@@ -11,6 +11,7 @@
 //
 //
 
+import MWDATCamera
 import MWDATCore
 import SwiftUI
 import UIKit
