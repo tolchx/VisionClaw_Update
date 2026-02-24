@@ -22,8 +22,8 @@ struct StreamSessionView: View {
   @StateObject private var viewModel: StreamSessionViewModel
   @StateObject private var geminiVM = GeminiSessionViewModel()
   @StateObject private var webrtcVM = WebRTCSessionViewModel()
-  
   @State private var isMenuOpen: Bool = false
+  @State private var showSettings: Bool = false
 
   init(wearables: WearablesInterface, wearablesVM: WearablesViewModel) {
     self.wearables = wearables
@@ -43,7 +43,7 @@ struct StreamSessionView: View {
       .disabled(isMenuOpen)
       
       // 2. Lateral Menu (Overlay)
-      HamburgerMenuView(isOpen: $isMenuOpen, viewModel: viewModel, wearablesVM: wearablesViewModel)
+      HamburgerMenuView(isOpen: $isMenuOpen, showSettings: $showSettings, viewModel: viewModel, wearablesVM: wearablesViewModel)
     }
     .task {
       viewModel.geminiSessionVM = geminiVM
@@ -71,6 +71,9 @@ struct StreamSessionView: View {
     } message: {
       Text(viewModel.errorMessage)
     }
+    .sheet(isPresented: $showSettings) {
+      SettingsView()
+    }
   }
 }
 
@@ -78,6 +81,7 @@ struct StreamSessionView: View {
 
 struct HamburgerMenuView: View {
     @Binding var isOpen: Bool
+    @Binding var showSettings: Bool
     @ObservedObject var viewModel: StreamSessionViewModel
     @ObservedObject var wearablesVM: WearablesViewModel
     
@@ -128,6 +132,11 @@ struct HamburgerMenuView: View {
                             }
                             withAnimation { isOpen = false }
                         }
+                    }
+                    
+                    MenuOption(icon: "gearshape.fill", title: "Settings", color: .white) {
+                        withAnimation { isOpen = false }
+                        showSettings = true
                     }
                     
                     MenuOption(icon: "power", title: "Disconnect", color: .red) {

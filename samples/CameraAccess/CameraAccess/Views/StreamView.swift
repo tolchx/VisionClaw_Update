@@ -22,8 +22,9 @@ struct StreamView: View {
   @ObservedObject var wearablesVM: WearablesViewModel
   @ObservedObject var geminiVM: GeminiSessionViewModel
   @ObservedObject var webrtcVM: WebRTCSessionViewModel
-  
   @Binding var isMenuOpen: Bool
+  @State private var showPiP = true
+  @State private var pipPosition = CGPoint(x: UIScreen.main.bounds.width - 90, y: 150)
 
   var body: some View {
     ZStack {
@@ -31,33 +32,13 @@ struct StreamView: View {
       AnimatedBackground()
       ParticleEffect(particleCount: 30).opacity(0.5)
 
-      // Video backdrop: PiP when WebRTC connected, otherwise single local feed
-      if webrtcVM.isActive && webrtcVM.connectionState == .connected {
-        // Embed PiP inside a container
-        VStack {
-            Spacer()
-            PiPVideoView(
-              localFrame: viewModel.currentVideoFrame,
-              remoteVideoTrack: webrtcVM.remoteVideoTrack,
-              hasRemoteVideo: webrtcVM.hasRemoteVideo
-            )
-            .frame(height: 300)
-            .padding()
-        }
-      } else if let videoFrame = viewModel.currentVideoFrame, viewModel.hasReceivedFirstFrame {
-        GeometryReader { geometry in
-          Image(uiImage: videoFrame)
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-            .frame(width: geometry.size.width, height: geometry.size.height)
-            .clipped()
-            .opacity(0.4) // Dim video to make UI pop
-        }
-        .edgesIgnoringSafeArea(.all)
-      } else {
-        ProgressView()
-          .scaleEffect(1.5)
-          .foregroundColor(.white)
+      // Ensure a background exists if there is no WebRTC PiP or camera Feed
+      if !webrtcVM.isActive || webrtcVM.connectionState != .connected {
+          if viewModel.currentVideoFrame == nil || !viewModel.hasReceivedFirstFrame {
+              ProgressView()
+                  .scaleEffect(1.5)
+                  .foregroundColor(.white)
+          }
       }
 
       // 2. Main Interactive UI
@@ -136,6 +117,52 @@ struct StreamView: View {
         .padding()
         .glassPanel()
         .padding()
+      }
+      }
+      
+      // 3. Draggable PiP Video (Floating over the Agent UI)
+      if showPiP {
+          if webrtcVM.isActive && webrtcVM.connectionState == .connected {
+              DraggablePiPView(
+                  position: $pipPosition,
+                  isShowing: $showPiP
+              ) {
+                  PiPVideoView(
+                      localFrame: viewModel.currentVideoFrame,
+                      remoteVideoTrack: webrtcVM.remoteVideoTrack,
+                      hasRemoteVideo: webrtcVM.hasRemoteVideo
+                  )
+              }
+          } else if let videoFrame = viewModel.currentVideoFrame, viewModel.hasReceivedFirstFrame {
+              DraggablePiPView(
+                  position: $pipPosition,
+                  isShowing: $showPiP
+              ) {
+                  Image(uiImage: videoFrame)
+                      .resizable()
+                      .aspectRatio(contentMode: .fill)
+              }
+          }
+      }
+      
+      // Toggle button if PiP was closed
+      if !showPiP && ((viewModel.currentVideoFrame != nil && viewModel.hasReceivedFirstFrame) || (webrtcVM.isActive && webrtcVM.connectionState == .connected)) {
+          VStack {
+              Spacer()
+              HStack {
+                  Spacer()
+                  Button(action: {
+                      withAnimation { showPiP = true }
+                  }) {
+                      Image(systemName: "video.fill")
+                          .foregroundColor(.white)
+                          .padding(12)
+                          .background(Circle().fill(.ultraThinMaterial))
+                          .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                  }
+                  .padding()
+              }
+          }
       }
     }
     .onDisappear {
@@ -277,6 +304,53 @@ struct ControlsView: View {
 }
 
 // MARK: - Appended Views for compilation
+
+struct DraggablePiPView<Content: View>: View {
+    @Binding var position: CGPoint
+    @Binding var isShowing: Bool
+    let content: Content
+    
+    init(position: Binding<CGPoint>, isShowing: Binding<Bool>, @ViewBuilder content: () -> Content) {
+        self._position = position
+        self._isShowing = isShowing
+        self.content = content()
+    }
+    
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            content
+                .frame(width: 120, height: 160)
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+                .overlay(RoundedRectangle(cornerRadius: 15).stroke(Color.white.opacity(0.3), lineWidth: 1))
+                .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+            
+            Button(action: {
+                withAnimation { isShowing = false }
+            }) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.white)
+                    .background(Circle().fill(Color.black.opacity(0.5)))
+            }
+            .padding(6)
+        }
+        .position(position)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    position = value.location
+                }
+                .onEnded { value in
+                    // Basic bounds clamping so it doesn't get lost off-screen
+                    let screen = UIScreen.main.bounds
+                    let newX = max(60, min(value.location.x, screen.width - 60))
+                    let newY = max(100, min(value.location.y, screen.height - 100))
+                    withAnimation(.spring()) {
+                        position = CGPoint(x: newX, y: newY)
+                    }
+                }
+        )
+    }
+}
 
 struct AnimatedBackground: View {
     @State private var animateGradient = false
