@@ -193,7 +193,7 @@ struct ControlsView: View {
       if webrtcVM.isActive { return .gray }
       if !geminiVM.isGeminiActive { return .gray }
       
-      switch geminiVM.sessionState {
+      switch geminiVM.connectionState {
       case .connecting: return .orange
       case .connected:
           if geminiVM.isModelSpeaking {
@@ -267,11 +267,162 @@ struct ControlsView: View {
               .foregroundColor(.white)
               .font(.title2)
               .frame(width: 50, height: 50)
-              .background(Circle().fill(webrtcVM.isActive ? Color.blue : .ultraThinMaterial))
+              .background(Circle().fill(webrtcVM.isActive ? AnyShapeStyle(Color.blue) : AnyShapeStyle(.ultraThinMaterial)))
               .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 1))
       }
       .opacity(geminiVM.isGeminiActive ? 0.4 : 1.0)
       .disabled(geminiVM.isGeminiActive)
     }
   }
+}
+
+// MARK: - Appended Views for compilation
+
+struct AnimatedBackground: View {
+    @State private var animateGradient = false
+    var body: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.1, green: 0.1, blue: 0.2), // Dark Slate
+                Color(red: 0.05, green: 0.3, blue: 0.4), // Deep Teal
+                Color(red: 0.2, green: 0.1, blue: 0.3)  // Deep Purple
+            ],
+            startPoint: animateGradient ? .topLeading : .bottomLeading,
+            endPoint: animateGradient ? .bottomTrailing : .topTrailing
+        )
+        .ignoresSafeArea()
+        .onAppear {
+            withAnimation(.linear(duration: 8.0).repeatForever(autoreverses: true)) {
+                animateGradient.toggle()
+            }
+        }
+    }
+}
+
+struct Particle: Identifiable {
+    let id = UUID()
+    var x: CGFloat
+    var y: CGFloat
+    var scale: CGFloat
+    var opacity: Double
+    var speedX: CGFloat
+    var speedY: CGFloat
+}
+
+struct ParticleEffect: View {
+    let particleCount: Int
+    @State private var particles: [Particle] = []
+    let timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                ForEach(particles) { particle in
+                    Circle()
+                        .fill(Color.white)
+                        .scaleEffect(particle.scale)
+                        .opacity(particle.opacity)
+                        .position(x: particle.x, y: particle.y)
+                }
+            }
+            .onAppear {
+                createParticles(in: geometry.size)
+            }
+            .onReceive(timer) { _ in
+                updateParticles(in: geometry.size)
+            }
+        }
+    }
+    
+    private func createParticles(in size: CGSize) {
+        particles = (0..<particleCount).map { _ in
+            Particle(
+                x: CGFloat.random(in: 0...size.width),
+                y: CGFloat.random(in: 0...size.height),
+                scale: CGFloat.random(in: 0.2...1.5),
+                opacity: Double.random(in: 0.1...0.5),
+                speedX: CGFloat.random(in: -1...1),
+                speedY: CGFloat.random(in: -1...1)
+            )
+        }
+    }
+    
+    private func updateParticles(in size: CGSize) {
+        for index in particles.indices {
+            var particle = particles[index]
+            particle.x += particle.speedX
+            particle.y += particle.speedY
+            if particle.x < 0 { particle.x = size.width }
+            else if particle.x > size.width { particle.x = 0 }
+            if particle.y < 0 { particle.y = size.height }
+            else if particle.y > size.height { particle.y = 0 }
+            particles[index] = particle
+        }
+    }
+}
+
+struct ChatMessageBubble: View {
+    let text: String
+    let isUser: Bool
+    var body: some View {
+        HStack {
+            if isUser { Spacer() }
+            Text(text)
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(.ultraThinMaterial)
+                )
+                .background(isUser ? Color.blue.opacity(0.3) : Color.clear)
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                )
+            if !isUser { Spacer() }
+        }
+    }
+}
+
+struct GlassmorphismPill: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    )
+            )
+    }
+}
+
+extension View {
+    func glassmorphismPill() -> some View {
+        modifier(GlassmorphismPill())
+    }
+}
+
+struct GlassmorphismPanel: ViewModifier {
+    var cornerRadius: CGFloat = 20
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    )
+            )
+    }
+}
+
+extension View {
+    func glassPanel(cornerRadius: CGFloat = 20) -> some View {
+        modifier(GlassmorphismPanel(cornerRadius: cornerRadius))
+    }
 }
