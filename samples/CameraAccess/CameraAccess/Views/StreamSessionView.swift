@@ -34,28 +34,7 @@ struct StreamSessionView: View {
     ZStack {
       // 1. Main View (Background)
       Group {
-        if viewModel.isStreaming {
           StreamView(viewModel: viewModel, wearablesVM: wearablesViewModel, geminiVM: geminiVM, webrtcVM: webrtcVM, isMenuOpen: $isMenuOpen)
-        } else {
-          NonStreamView(viewModel: viewModel, wearablesVM: wearablesViewModel)
-            .overlay(
-              // Allow menu button even in NonStreamView if desired, or keep it strictly for StreamView
-              VStack {
-                HStack {
-                  Button {
-                    withAnimation { isMenuOpen.toggle() }
-                  } label: {
-                    Image(systemName: "line.horizontal.3")
-                      .font(.title2)
-                      .foregroundColor(.white)
-                  }
-                  .padding()
-                  Spacer()
-                }
-                Spacer()
-              }
-            )
-        }
       }
       .scaleEffect(isMenuOpen ? 0.95 : 1.0)
       .blur(radius: isMenuOpen ? 2 : 0)
@@ -63,12 +42,17 @@ struct StreamSessionView: View {
       .disabled(isMenuOpen)
       
       // 2. Lateral Menu (Overlay)
-      HamburgerMenuView(isOpen: $isMenuOpen)
+      HamburgerMenuView(isOpen: $isMenuOpen, viewModel: viewModel, wearablesVM: wearablesViewModel)
     }
     .task {
       viewModel.geminiSessionVM = geminiVM
       viewModel.webrtcSessionVM = webrtcVM
       geminiVM.streamingMode = viewModel.streamingMode
+      
+      // Auto-start streaming on load if not already started
+      if !viewModel.isStreaming {
+          await viewModel.handleStartStreaming()
+      }
     }
     .onChange(of: viewModel.streamingMode) { _, newMode in
       geminiVM.streamingMode = newMode
@@ -93,6 +77,8 @@ struct StreamSessionView: View {
 
 struct HamburgerMenuView: View {
     @Binding var isOpen: Bool
+    @ObservedObject var viewModel: StreamSessionViewModel
+    @ObservedObject var wearablesVM: WearablesViewModel
     
     var body: some View {
         GeometryReader { geometry in
@@ -111,16 +97,41 @@ struct HamburgerMenuView: View {
                     .padding(.top, 60)
                     .padding(.bottom, 20)
                     
-                    MenuOption(icon: "gearshape.fill", title: "Settings") {
-                        // Action for settings
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Stream Quality")
+                            .font(.footnote)
+                            .foregroundColor(.gray)
+                        Picker("Resolution", selection: Binding(
+                            get: { viewModel.selectedResolution },
+                            set: { viewModel.updateResolution($0) }
+                        )) {
+                            Text("Low").tag(StreamingResolution.low)
+                            Text("Med").tag(StreamingResolution.medium)
+                            Text("High").tag(StreamingResolution.high)
+                        }
+                        .pickerStyle(.segmented)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(8)
                     }
                     
-                    MenuOption(icon: "clock.fill", title: "History") {
-                        // Action for history
+                    MenuOption(icon: viewModel.streamingMode == .iPhone ? "eyeglasses" : "iphone", 
+                               title: viewModel.streamingMode == .iPhone ? "Start Glasses" : "Start iPhone",
+                               color: .white) {
+                        Task {
+                            if viewModel.streamingMode == .iPhone {
+                                await viewModel.stopSession()
+                                await viewModel.handleStartStreaming()
+                            } else {
+                                await viewModel.stopSession()
+                                await viewModel.handleStartIPhone()
+                            }
+                            withAnimation { isOpen = false }
+                        }
                     }
                     
-                    MenuOption(icon: "ladybug.fill", title: "Debug Logging") {
-                        // Action for debug logging
+                    MenuOption(icon: "power", title: "Disconnect", color: .red) {
+                        wearablesVM.disconnectGlasses()
+                        withAnimation { isOpen = false }
                     }
                     
                     Spacer()
@@ -156,6 +167,7 @@ struct HamburgerMenuView: View {
 struct MenuOption: View {
     let icon: String
     let title: String
+    var color: Color = .white
     let action: () -> Void
     
     var body: some View {
@@ -165,11 +177,11 @@ struct MenuOption: View {
             HStack(spacing: 15) {
                 Image(systemName: icon)
                     .font(.title3)
-                    .foregroundColor(.white)
+                    .foregroundColor(color)
                     .frame(width: 30)
                 Text(title)
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(color)
             }
         }
     }
