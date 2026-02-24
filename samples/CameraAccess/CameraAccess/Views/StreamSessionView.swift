@@ -21,6 +21,8 @@ struct StreamSessionView: View {
   @StateObject private var viewModel: StreamSessionViewModel
   @StateObject private var geminiVM = GeminiSessionViewModel()
   @StateObject private var webrtcVM = WebRTCSessionViewModel()
+  
+  @State private var isMenuOpen: Bool = false
 
   init(wearables: WearablesInterface, wearablesVM: WearablesViewModel) {
     self.wearables = wearables
@@ -30,13 +32,38 @@ struct StreamSessionView: View {
 
   var body: some View {
     ZStack {
-      if viewModel.isStreaming {
-        // Full-screen video view with streaming controls
-        StreamView(viewModel: viewModel, wearablesVM: wearablesViewModel, geminiVM: geminiVM, webrtcVM: webrtcVM)
-      } else {
-        // Pre-streaming setup view with permissions and start button
-        NonStreamView(viewModel: viewModel, wearablesVM: wearablesViewModel)
+      // 1. Main View (Background)
+      Group {
+        if viewModel.isStreaming {
+          StreamView(viewModel: viewModel, wearablesVM: wearablesViewModel, geminiVM: geminiVM, webrtcVM: webrtcVM, isMenuOpen: $isMenuOpen)
+        } else {
+          NonStreamView(viewModel: viewModel, wearablesVM: wearablesViewModel)
+            .overlay(
+              // Allow menu button even in NonStreamView if desired, or keep it strictly for StreamView
+              VStack {
+                HStack {
+                  Button {
+                    withAnimation { isMenuOpen.toggle() }
+                  } label: {
+                    Image(systemName: "line.horizontal.3")
+                      .font(.title2)
+                      .foregroundColor(.white)
+                  }
+                  .padding()
+                  Spacer()
+                }
+                Spacer()
+              }
+            )
+        }
       }
+      .scaleEffect(isMenuOpen ? 0.95 : 1.0)
+      .blur(radius: isMenuOpen ? 2 : 0)
+      .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isMenuOpen)
+      .disabled(isMenuOpen)
+      
+      // 2. Lateral Menu (Overlay)
+      HamburgerMenuView(isOpen: $isMenuOpen)
     }
     .task {
       viewModel.geminiSessionVM = geminiVM
