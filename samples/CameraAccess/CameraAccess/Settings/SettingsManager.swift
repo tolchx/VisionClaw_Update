@@ -1,6 +1,6 @@
 import Foundation
 
-final class SettingsManager {
+final class SettingsManager: ObservableObject {
   static let shared = SettingsManager()
 
   private let defaults = UserDefaults.standard
