@@ -6,9 +6,9 @@ struct AnimatedBackground: View {
     var body: some View {
         LinearGradient(
             colors: [
-                Color(red: 0.05, green: 0.05, blue: 0.1),  // Space Black/Deep Navy
-                Color(red: 0.1, green: 0.05, blue: 0.2),   // Dark Violet
-                Color(red: 0.02, green: 0.02, blue: 0.05)  // Near Black
+                Color(red: 0.02, green: 0.02, blue: 0.04), // Deep Charcoal
+                Color(red: 0.04, green: 0.02, blue: 0.08), // Midnight Violet
+                Color(red: 0.01, green: 0.01, blue: 0.02)  // Absolute Black
             ],
             startPoint: animateGradient ? .topLeading : .bottomLeading,
             endPoint: animateGradient ? .bottomTrailing : .topTrailing

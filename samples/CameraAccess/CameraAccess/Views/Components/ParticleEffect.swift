@@ -22,6 +22,7 @@ struct ParticleEffect: View {
                 ForEach(particles) { particle in
                     Circle()
                         .fill(Color.white)
+                        .frame(width: 4, height: 4) // Prevents expansion
                         .scaleEffect(particle.scale)
                         .opacity(particle.opacity)
                         .position(x: particle.x, y: particle.y)
