@@ -87,89 +87,220 @@ struct HamburgerMenuView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            HStack(spacing: 0) {
+            ZStack(alignment: .leading) {
+                // Dimmed background
+                if isOpen {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                        .onTapGesture { withAnimation { isOpen = false } }
+                }
+                
                 // Menu Content
-                VStack(alignment: .leading, spacing: 30) {
-                    HStack {
-                        Image(systemName: "visionpro")
-                            .font(.largeTitle)
-                            .foregroundColor(.white)
-                        Text("OpenVision")
-                            .font(.title2)
-                            .bold()
-                            .foregroundColor(.white)
-                    }
-                    .padding(.top, 60)
-                    .padding(.bottom, 20)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Stream Quality")
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 25) {
+                        // Header
+                        HStack {
+                            Image(systemName: "visionpro")
+                                .font(.system(size: 32))
+                                .foregroundColor(.white)
+                            Text("VisionClaw")
+                                .font(.title2.bold())
+                                .foregroundColor(.white)
+                        }
+                        .padding(.top, 60)
+                        
+                        // Connection Status Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("CONNECTION")
+                                .font(.caption.bold())
+                                .foregroundColor(.gray)
+                            
+                            StatusRow(title: "Meta AI Registration", 
+                                      status: wearablesVM.registrationState == .registered ? "Connected" : (wearablesVM.registrationState == .registering ? "Connecting..." : "Not Connected"),
+                                      icon: wearablesVM.registrationState == .registered ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
+                                      color: wearablesVM.registrationState == .registered ? .green : .orange)
+                            
+                            StatusRow(title: "Device Availability", 
+                                      status: viewModel.hasActiveDevice ? "Glasses Found" : "Searching...",
+                                      icon: viewModel.hasActiveDevice ? "eyeglasses" : "antenna.radiowaves.left.and.right",
+                                      color: viewModel.hasActiveDevice ? .green : .gray)
+                            
+                            if wearablesVM.registrationState != .registered {
+                                Button(action: {
+                                    wearablesVM.connectGlasses()
+                                    withAnimation { isOpen = false }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "link.badge.plus")
+                                        Text("Connect My Glasses")
+                                    }
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.blue)
+                                    .cornerRadius(12)
+                                }
+                                .padding(.top, 8)
+                            }
+                        }
+                        .padding()
+                        .background(Color.white.opacity(0.05))
+                        .cornerRadius(15)
+                        
+                        // Streaming Controls
+                        VStack(alignment: .leading, spacing: 15) {
+                            Text("STREAMING")
+                                .font(.caption.bold())
+                                .foregroundColor(.gray)
+                            
+                            // Glasses Control
+                            ControlRow(title: "Glasses Stream",
+                                       icon: "eyeglasses",
+                                       isActive: viewModel.streamingMode == .glasses && viewModel.isStreaming,
+                                       isDisabled: wearablesVM.registrationState != .registered) {
+                                Task {
+                                    if viewModel.streamingMode == .glasses && viewModel.isStreaming {
+                                        await viewModel.stopSession()
+                                    } else {
+                                        await viewModel.handleStartStreaming()
+                                    }
+                                    withAnimation { isOpen = false }
+                                }
+                            }
+                            
+                            // iPhone Control
+                            ControlRow(title: "iPhone Camera",
+                                       icon: "iphone",
+                                       isActive: viewModel.streamingMode == .iPhone && viewModel.isStreaming) {
+                                Task {
+                                    if viewModel.streamingMode == .iPhone && viewModel.isStreaming {
+                                        await viewModel.stopSession()
+                                    } else {
+                                        await viewModel.handleStartIPhone()
+                                    }
+                                    withAnimation { isOpen = false }
+                                }
+                            }
+                        }
+                        
+                        // App Features (Restored from Home)
+                        VStack(alignment: .leading, spacing: 15) {
+                            Text("FEATURES")
+                                .font(.caption.bold())
+                                .foregroundColor(.gray)
+                            
+                            FeatureMiniItem(icon: "video.fill", title: "Video Point-of-View")
+                            FeatureMiniItem(icon: "waveform", title: "Open-Ear Assistant")
+                            FeatureMiniItem(icon: "figure.walk", title: "Hands-Free Mobility")
+                        }
+                        
+                        Divider().background(Color.white.opacity(0.2))
+                        
+                        // Common Options
+                        VStack(alignment: .leading, spacing: 20) {
+                            MenuOption(icon: "gearshape.fill", title: "Settings", color: .white) {
+                                withAnimation { isOpen = false }
+                                showSettings = true
+                            }
+                            
+                            MenuOption(icon: "power", title: "Unregister Device", color: .red) {
+                                wearablesVM.disconnectGlasses()
+                                withAnimation { isOpen = false }
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        Text("VisionClaw v1.1.0")
                             .font(.footnote)
                             .foregroundColor(.gray)
-                        Picker("Resolution", selection: Binding(
-                            get: { viewModel.selectedResolution },
-                            set: { viewModel.updateResolution($0) }
-                        )) {
-                            Text("Low").tag(StreamingResolution.low)
-                            Text("Med").tag(StreamingResolution.medium)
-                            Text("High").tag(StreamingResolution.high)
-                        }
-                        .pickerStyle(.segmented)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(8)
+                            .padding(.bottom, 30)
                     }
-                    
-                    MenuOption(icon: viewModel.streamingMode == .iPhone ? "eyeglasses" : "iphone", 
-                               title: viewModel.streamingMode == .iPhone ? "Start Glasses" : "Start iPhone",
-                               color: .white) {
-                        Task {
-                            if viewModel.streamingMode == .iPhone {
-                                await viewModel.stopSession()
-                                await viewModel.handleStartStreaming()
-                            } else {
-                                await viewModel.stopSession()
-                                await viewModel.handleStartIPhone()
-                            }
-                            withAnimation { isOpen = false }
-                        }
-                    }
-                    
-                    MenuOption(icon: "gearshape.fill", title: "Settings", color: .white) {
-                        withAnimation { isOpen = false }
-                        showSettings = true
-                    }
-                    
-                    MenuOption(icon: "power", title: "Disconnect", color: .red) {
-                        wearablesVM.disconnectGlasses()
-                        withAnimation { isOpen = false }
-                    }
-                    
-                    Spacer()
-                    
-                    Text("v1.0.0")
-                        .font(.footnote)
-                        .foregroundColor(.gray)
+                    .padding(.horizontal, 25)
                 }
-                .padding(.horizontal, 30)
-                .frame(width: geometry.size.width * 0.75, alignment: .leading)
+                .frame(width: geometry.size.width * 0.85)
                 .background(
-                    Color(red: 0.1, green: 0.1, blue: 0.15)
-                        .opacity(0.9)
+                    Color(red: 0.05, green: 0.05, blue: 0.08)
                         .ignoresSafeArea()
                 )
-                .offset(x: isOpen ? 0 : -geometry.size.width * 0.75)
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isOpen)
-                
-                // Transparent dismiss area
-                if isOpen {
-                    Color.black.opacity(0.001)
-                        .onTapGesture {
-                            withAnimation {
-                                isOpen = false
-                            }
-                        }
-                }
+                .offset(x: isOpen ? 0 : -geometry.size.width * 0.85)
+                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isOpen)
             }
+        }
+    }
+}
+
+struct StatusRow: View {
+    let title: String
+    let status: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+                Text(status)
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+            }
+            Spacer()
+            Image(systemName: icon)
+                .foregroundColor(color)
+        }
+    }
+}
+
+struct ControlRow: View {
+    let title: String
+    let icon: String
+    let isActive: Bool
+    var isDisabled: Bool = false
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .frame(width: 30)
+                Text(title)
+                    .font(.headline)
+                Spacer()
+                Text(isActive ? "STOP" : "START")
+                    .font(.caption.bold())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(isActive ? Color.red : Color.blue)
+                    .cornerRadius(8)
+            }
+            .foregroundColor(isDisabled ? .gray : .white)
+            .padding()
+            .background(Color.white.opacity(0.05))
+            .cornerRadius(12)
+        }
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.5 : 1.0)
+    }
+}
+
+struct FeatureMiniItem: View {
+    let icon: String
+    let title: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(.blue)
+                .font(.system(size: 14))
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(Color.blue.opacity(0.1)))
+            Text(title)
+                .font(.footnote)
+                .foregroundColor(.white.opacity(0.8))
         }
     }
 }
