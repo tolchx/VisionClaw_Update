@@ -1,8 +1,6 @@
-import SwiftUI
-
 struct SettingsView: View {
   @Environment(\.dismiss) private var dismiss
-  private let settings = SettingsManager.shared
+  @ObservedObject private var settings = SettingsManager.shared
 
   @State private var geminiAPIKey: String = ""
   @State private var openClawHost: String = ""
@@ -12,180 +10,132 @@ struct SettingsView: View {
   @State private var geminiSystemPrompt: String = ""
   @State private var webrtcSignalingURL: String = ""
   @State private var showResetConfirmation = false
-  
-  @State private var activeTab: SettingsTab = .ai
-
-  enum SettingsTab: String, CaseIterable {
-    case ai = "AI Assistant"
-    case openClaw = "OpenClaw"
-    case connection = "Connection"
-    
-    var icon: String {
-        switch self {
-        case .ai: return "sparkles"
-        case .openClaw: return "terminal"
-        case .connection: return "link"
-        }
-    }
-  }
 
   var body: some View {
-    ZStack {
-      AnimatedBackground()
-      
-      VStack(spacing: 0) {
-        // Custom Header
-        headerView
+    NavigationStack {
+      ZStack {
+        AnimatedBackground()
         
-        // Tab Switcher
-        tabSwitcher
-        
-        // Content Area
-        ScrollView {
-          VStack(spacing: 20) {
-            switch activeTab {
-            case .ai: aiSection
-            case .openClaw: openClawSection
-            case .connection: connectionSection
+        List {
+          // SECTION: AI
+          Section(header: Text("AI").foregroundColor(.gray)) {
+            NavigationLink(destination: AIBackendView()) {
+              CategoryRow(title: "AI Backend", value: settings.activeAIBackend, icon: "cpu", iconColor: .blue)
             }
             
-            Spacer(minLength: 40)
+            NavigationLink(destination: CustomInstructionsView(text: $geminiSystemPrompt)) {
+              CategoryRow(title: "Custom Instructions", icon: "text.quote", iconColor: .cyan)
+            }
+            
+            CategoryRow(title: "Memories", value: "0", icon: "brain", iconColor: .purple)
           }
-          .padding()
+          .listRowBackground(Color.white.opacity(0.05))
+          
+          // SECTION: Hardware
+          Section(header: Text("Hardware").foregroundColor(.gray)) {
+            NavigationLink(destination: Text("Glasses Connection Detail")) {
+                HStack {
+                    Image(systemName: "eyeglasses")
+                        .foregroundColor(.blue)
+                        .frame(width: 24)
+                    Text("Glasses")
+                        .foregroundColor(.white)
+                    Spacer()
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .foregroundColor(.orange)
+                }
+            }
+          }
+          .listRowBackground(Color.white.opacity(0.05))
+          
+          // SECTION: Voice
+          Section(header: Text("Voice").foregroundColor(.gray)) {
+            NavigationLink(destination: VoiceControlView()) {
+              CategoryRow(title: "Voice Control", value: settings.wakePhrase, icon: "mic.fill", iconColor: .blue)
+            }
+          }
+          .listRowBackground(Color.white.opacity(0.05))
+          
+          // SECTION: Advanced
+          Section(header: Text("Advanced").foregroundColor(.gray)) {
+            ToggleRow(title: "Auto-Reconnect", isOn: $settings.autoReconnect)
+            ToggleRow(title: "Show Transcripts", isOn: $settings.showTranscripts)
+            
+            NavigationLink(destination: connectionSettingsView) {
+                CategoryRow(title: "Connection Settings", icon: "link", iconColor: .gray)
+            }
+          }
+          .listRowBackground(Color.white.opacity(0.05))
+          
+          // SECTION: Offline Capabilities
+          Section(header: Text("Offline Capabilities").foregroundColor(.gray)) {
+            NavigationLink(destination: OfflineModelView()) {
+              CategoryRow(title: "Offline AI Model", value: "Not Installed", icon: "globe", iconColor: .cyan)
+            }
+          }
+          .listRowBackground(Color.white.opacity(0.05))
+          
+          // Reset Section
+          Section {
+            Button(action: { showResetConfirmation = true }) {
+                Text("Factory Reset")
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+          }
+          .listRowBackground(Color.red.opacity(0.1))
+        }
+        .scrollContentBackground(.hidden)
+        .listStyle(.insetGrouped)
+      }
+      .navigationTitle("Settings")
+      .navigationBarTitleDisplayMode(.large)
+      .toolbar {
+        ToolbarItem(placement: .navigationBarLeading) {
+            Button("Cancel") { dismiss() }
+                .foregroundColor(.white.opacity(0.7))
+        }
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button("Save") {
+                save()
+                dismiss()
+            }
+            .fontWeight(.bold)
+            .foregroundColor(.white)
         }
       }
-    }
-    .navigationBarHidden(true)
-    .alert("Reset Settings", isPresented: $showResetConfirmation) {
-      Button("Reset", role: .destructive) {
-        settings.resetAll()
+      .alert("Reset Settings", isPresented: $showResetConfirmation) {
+        Button("Reset", role: .destructive) {
+          settings.resetAll()
+          loadCurrentValues()
+        }
+        Button("Cancel", role: .cancel) {}
+      } message: {
+        Text("This will reset all settings to the values built into the app.")
+      }
+      .onAppear {
         loadCurrentValues()
       }
-      Button("Cancel", role: .cancel) {}
-    } message: {
-      Text("This will reset all settings to the values built into the app.")
+      .preferredColorScheme(.dark)
     }
-    .onAppear {
-      loadCurrentValues()
-    }
-    .preferredColorScheme(.dark)
   }
 
-  // MARK: - Subviews
+  // MARK: - Components
 
-  private var headerView: some View {
-    HStack {
-      Button("Cancel") { dismiss() }
-        .foregroundColor(.white.opacity(0.8))
-      
-      Spacer()
-      
-      Text("Settings")
-        .font(.headline)
-        .foregroundColor(.white)
-      
-      Spacer()
-      
-      Button("Save") {
-        save()
-        dismiss()
-      }
-      .fontWeight(.bold)
-      .foregroundColor(.white)
-    }
-    .padding()
-    .background(Color.black.opacity(0.2))
-  }
-
-  private var tabSwitcher: some View {
-    HStack(spacing: 0) {
-      ForEach(SettingsTab.allCases, id: \.self) { tab in
-        Button(action: { withAnimation(.spring()) { activeTab = tab } }) {
-          VStack(spacing: 8) {
-            Image(systemName: tab.icon)
-              .font(.system(size: 18))
-            Text(tab.rawValue)
-              .font(.caption2)
+  private var connectionSettingsView: some View {
+      ZStack {
+          AnimatedBackground()
+          ScrollView {
+              VStack(spacing: 20) {
+                  settingField(title: "OpenClaw Host", placeholder: "http://your-mac.local", text: $openClawHost)
+                  settingField(title: "OpenClaw Port", placeholder: "18789", text: $openClawPort, keyboardType: .numberPad)
+                  settingField(title: "Gateway Token", placeholder: "Optional", text: $openClawGatewayToken, isSecure: true)
+                  settingField(title: "WebRTC Signaling URL", placeholder: "wss://...", text: $webrtcSignalingURL)
+              }
+              .padding()
           }
-          .foregroundColor(activeTab == tab ? .white : .white.opacity(0.4))
-          .frame(maxWidth: .infinity)
-          .padding(.vertical, 12)
-          .background(activeTab == tab ? Color.white.opacity(0.1) : Color.clear)
-        }
       }
-    }
-    .background(Color.black.opacity(0.1))
-    .overlay(
-        Rectangle()
-            .fill(Color.white.opacity(0.1))
-            .frame(height: 1),
-        alignment: .bottom
-    )
-  }
-
-  private var aiSection: some View {
-    VStack(alignment: .leading, spacing: 16) {
-      settingField(title: "Gemini API Key", placeholder: "Enter API key", text: $geminiAPIKey, isSecure: true)
-      
-      VStack(alignment: .leading, spacing: 8) {
-        Text("System Prompt")
-          .font(.caption)
-          .foregroundColor(.white.opacity(0.6))
-          .padding(.leading, 4)
-        
-        TextEditor(text: $geminiSystemPrompt)
-          .font(.system(.body, design: .monospaced))
-          .frame(minHeight: 250)
-          .padding(12)
-          .background(Color.black.opacity(0.3))
-          .cornerRadius(12)
-          .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 1))
-        
-        Text("Customize the AI assistant's behavior. Takes effect on next session.")
-          .font(.caption2)
-          .foregroundColor(.white.opacity(0.4))
-          .padding(.leading, 4)
-      }
-    }
-    .glassPanel()
-  }
-
-  private var openClawSection: some View {
-    VStack(alignment: .leading, spacing: 16) {
-      settingField(title: "Host", placeholder: "http://your-mac.local", text: $openClawHost)
-      settingField(title: "Port", placeholder: "18789", text: $openClawPort, keyboardType: .numberPad)
-      settingField(title: "Hook Token", placeholder: "Enter hook token", text: $openClawHookToken, isSecure: true)
-      settingField(title: "Gateway Token", placeholder: "Enter gateway token", text: $openClawGatewayToken, isSecure: true)
-      
-      Text("Connect to an OpenClaw gateway running on your Mac for agentic tool-calling.")
-        .font(.caption2)
-        .foregroundColor(.white.opacity(0.4))
-        .padding(.top, 4)
-    }
-    .glassPanel()
-  }
-
-  private var connectionSection: some View {
-    VStack(alignment: .leading, spacing: 16) {
-      settingField(title: "WebRTC Signaling URL", placeholder: "wss://...", text: $webrtcSignalingURL)
-      
-      Divider().background(Color.white.opacity(0.1))
-      
-      Button(action: { showResetConfirmation = true }) {
-        HStack {
-          Spacer()
-          Text("Reset to Defaults")
-            .foregroundColor(.red)
-            .fontWeight(.semibold)
-          Spacer()
-        }
-        .padding()
-        .background(Color.red.opacity(0.1))
-        .cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.3), lineWidth: 1))
-      }
-    }
-    .glassPanel()
+      .navigationTitle("Connection")
   }
 
   @ViewBuilder
@@ -206,11 +156,9 @@ struct SettingsView: View {
       .autocapitalization(.none)
       .disableAutocorrection(true)
       .keyboardType(keyboardType)
-      .font(.system(.body, design: .monospaced))
       .padding(12)
-      .background(Color.black.opacity(0.3))
+      .background(Color.white.opacity(0.05))
       .cornerRadius(12)
-      .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 1))
     }
   }
 
@@ -235,4 +183,44 @@ struct SettingsView: View {
     settings.openClawGatewayToken = openClawGatewayToken.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.webrtcSignalingURL = webrtcSignalingURL.trimmingCharacters(in: .whitespacesAndNewlines)
   }
+}
+
+struct CategoryRow: View {
+    let title: String
+    var value: String? = nil
+    let icon: String
+    let iconColor: Color
+    
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(iconColor)
+                .frame(width: 24)
+            Text(title)
+                .foregroundColor(.white)
+            Spacer()
+            if let val = value {
+                Text(val)
+                    .foregroundColor(.gray)
+            }
+        }
+    }
+}
+
+struct CustomInstructionsView: View {
+    @Binding var text: String
+    var body: some View {
+        ZStack {
+            AnimatedBackground()
+            VStack {
+                TextEditor(text: $text)
+                    .padding()
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(12)
+                    .padding()
+                Spacer()
+            }
+        }
+        .navigationTitle("Instructions")
+    }
 }

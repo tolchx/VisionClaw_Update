@@ -37,6 +37,9 @@
 		9DD6CB0E2F3C64F400ED7098 /* WebRTCOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD6CB0D2F3C64F400ED7098 /* WebRTCOverlayView.swift */; };
 		9DD894B22F4047630090B9B9 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD894AF2F4047630090B9B9 /* SettingsManager.swift */; };
 		9DD894B32F4047630090B9B9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD894B02F4047630090B9B9 /* SettingsView.swift */; };
+		9DD894B52F4047630090B9B9 /* AIBackendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD894B42F4047630090B9B9 /* AIBackendView.swift */; };
+		9DD894B72F4047630090B9B9 /* VoiceControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD894B62F4047630090B9B9 /* VoiceControlView.swift */; };
+		9DD894B92F4047630090B9B9 /* OfflineModelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD894B82F4047630090B9B9 /* OfflineModelView.swift */; };
 		9DD895962F405E0E0090B9B9 /* RTCVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD895952F405E0E0090B9B9 /* RTCVideoView.swift */; };
 		9DD895972F405E0E0090B9B9 /* PiPVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD895942F405E0E0090B9B9 /* PiPVideoView.swift */; };
 		A1B2C3D42F0A000200000001 /* GeminiConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A000100000001 /* GeminiConfig.swift */; };
@@ -113,6 +116,9 @@
 		9DD6CB0D2F3C64F400ED7098 /* WebRTCOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCOverlayView.swift; sourceTree = "<group>"; };
 		9DD894AF2F4047630090B9B9 /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
 		9DD894B02F4047630090B9B9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		9DD894B42F4047630090B9B9 /* AIBackendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIBackendView.swift; sourceTree = "<group>"; };
+		9DD894B62F4047630090B9B9 /* VoiceControlView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceControlView.swift; sourceTree = "<group>"; };
+		9DD894B82F4047630090B9B9 /* OfflineModelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineModelView.swift; sourceTree = "<group>"; };
 		9DD895942F405E0E0090B9B9 /* PiPVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiPVideoView.swift; sourceTree = "<group>"; };
 		9DD895952F405E0E0090B9B9 /* RTCVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTCVideoView.swift; sourceTree = "<group>"; };
 		A1B2C3D42F0A000100000001 /* GeminiConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiConfig.swift; sourceTree = "<group>"; };
@@ -278,6 +284,9 @@
 			children = (
 				9DD894AF2F4047630090B9B9 /* SettingsManager.swift */,
 				9DD894B02F4047630090B9B9 /* SettingsView.swift */,
+				9DD894B42F4047630090B9B9 /* AIBackendView.swift */,
+				9DD894B62F4047630090B9B9 /* VoiceControlView.swift */,
+				9DD894B82F4047630090B9B9 /* OfflineModelView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -453,6 +462,9 @@
 				A1B2C3D42F0A000200000004 /* GeminiSessionViewModel.swift in Sources */,
 				9DD894B22F4047630090B9B9 /* SettingsManager.swift in Sources */,
 				9DD894B32F4047630090B9B9 /* SettingsView.swift in Sources */,
+				9DD894B52F4047630090B9B9 /* AIBackendView.swift in Sources */,
+				9DD894B72F4047630090B9B9 /* VoiceControlView.swift in Sources */,
+				9DD894B92F4047630090B9B9 /* OfflineModelView.swift in Sources */,
 				A1B2C3D42F0A000200000005 /* GeminiOverlayView.swift in Sources */,
 				A1B2C3D42F0A001200000001 /* ChatModels.swift in Sources */,
 				A1B2C3D42F0A001200000002 /* ChatHistoryManager.swift in Sources */,
