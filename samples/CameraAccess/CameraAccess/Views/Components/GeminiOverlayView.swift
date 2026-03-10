@@ -118,9 +118,7 @@ struct ToolCallStatusView: View {
   private var statusIcon: some View {
     switch status {
     case .executing:
-      ProgressView()
-        .scaleEffect(0.7)
-        .tint(.white)
+      EmptyView() // Removed ProgressView
     case .completed:
       Image(systemName: "checkmark.circle.fill")
         .foregroundColor(.green)

@@ -123,16 +123,19 @@ class OpenClawBridge: ObservableObject {
          let content = message["content"] as? String {
         // Append assistant response to history for continuity
         conversationHistory.append(["role": "assistant", "content": content])
-        NSLog("[OpenClaw] Agent result: %@", String(content.prefix(200)))
+        
+        let safeContent = content.count > 8000 ? String(content.prefix(8000)) + "\n[Response truncated to fit WebSocket limit]" : content
+        NSLog("[OpenClaw] Agent result: %@", String(safeContent.prefix(200)))
         lastToolCallStatus = .completed(toolName)
-        return .success(content)
+        return .success(safeContent)
       }
 
       let raw = String(data: data, encoding: .utf8) ?? "OK"
       conversationHistory.append(["role": "assistant", "content": raw])
-      NSLog("[OpenClaw] Agent raw: %@", String(raw.prefix(200)))
+      let safeRaw = raw.count > 8000 ? String(raw.prefix(8000)) + "\n[Response truncated to fit WebSocket limit]" : raw
+      NSLog("[OpenClaw] Agent raw: %@", String(safeRaw.prefix(200)))
       lastToolCallStatus = .completed(toolName)
-      return .success(raw)
+      return .success(safeRaw)
     } catch {
       NSLog("[OpenClaw] Agent error: %@", error.localizedDescription)
       lastToolCallStatus = .failed(toolName, error.localizedDescription)

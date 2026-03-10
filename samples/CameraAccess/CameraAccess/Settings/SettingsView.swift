@@ -21,7 +21,7 @@ struct SettingsView: View {
         List {
           // SECTION: AI
           Section(header: Text("AI").foregroundColor(.gray)) {
-            NavigationLink(destination: AIBackendView()) {
+            NavigationLink(destination: AIBackendView(openClawHost: $openClawHost, openClawPort: $openClawPort, openClawGatewayToken: $openClawGatewayToken, webrtcSignalingURL: $webrtcSignalingURL, geminiAPIKey: $geminiAPIKey)) {
               CategoryRow(title: "AI Backend", value: settings.activeAIBackend, icon: "cpu", iconColor: .blue)
             }
             
@@ -35,7 +35,7 @@ struct SettingsView: View {
           
           // SECTION: Hardware
           Section(header: Text("Hardware").foregroundColor(.gray)) {
-            NavigationLink(destination: Text("Glasses Connection Detail")) {
+            NavigationLink(destination: GlassesConnectionDetailView()) {
                 HStack {
                     Image(systemName: "eyeglasses")
                         .foregroundColor(.blue)
@@ -63,7 +63,7 @@ struct SettingsView: View {
             ToggleRow(title: "Auto-Reconnect", isOn: $settings.autoReconnect)
             ToggleRow(title: "Show Transcripts", isOn: $settings.showTranscripts)
             
-            NavigationLink(destination: connectionSettingsView) {
+            NavigationLink(destination: OpenClawConnectionSettingsView(openClawHost: $openClawHost, openClawPort: $openClawPort, openClawGatewayToken: $openClawGatewayToken, webrtcSignalingURL: $webrtcSignalingURL)) {
                 CategoryRow(title: "Connection Settings", icon: "link", iconColor: .gray)
             }
           }
@@ -124,21 +124,7 @@ struct SettingsView: View {
 
   // MARK: - Components
 
-  private var connectionSettingsView: some View {
-      ZStack {
-          AnimatedBackground()
-          ScrollView {
-              VStack(spacing: 20) {
-                  settingField(title: "OpenClaw Host", placeholder: "http://your-mac.local", text: $openClawHost)
-                  settingField(title: "OpenClaw Port", placeholder: "18789", text: $openClawPort, keyboardType: .numberPad)
-                  settingField(title: "Gateway Token", placeholder: "Optional", text: $openClawGatewayToken, isSecure: true)
-                  settingField(title: "WebRTC Signaling URL", placeholder: "wss://...", text: $webrtcSignalingURL)
-              }
-              .padding()
-          }
-      }
-      .navigationTitle("Connection")
-  }
+  // connectionSettingsView moved to a struct
 
   @ViewBuilder
   private func settingField(title: String, placeholder: String, text: Binding<String>, isSecure: Bool = false, keyboardType: UIKeyboardType = .default) -> some View {

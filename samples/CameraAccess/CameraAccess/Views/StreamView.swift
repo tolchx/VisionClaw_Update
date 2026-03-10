@@ -65,14 +65,6 @@ struct StreamView: View {
     ZStack {
       AnimatedBackground()
       ParticleEffect(particleCount: 30).opacity(0.5)
-      
-      if !webrtcVM.isActive || webrtcVM.connectionState != .connected {
-          if viewModel.currentVideoFrame == nil || !viewModel.hasReceivedFirstFrame {
-              ProgressView()
-                  .scaleEffect(1.5)
-                  .foregroundColor(.white)
-          }
-      }
     }
   }
 

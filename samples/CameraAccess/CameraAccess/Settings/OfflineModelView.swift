@@ -99,6 +99,8 @@ struct OfflineModelView: View {
             }
         }
         .navigationBarHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
     }
     
     private func simulateDownload() {

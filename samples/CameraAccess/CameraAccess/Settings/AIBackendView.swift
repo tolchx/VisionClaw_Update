@@ -4,6 +4,13 @@ struct AIBackendView: View {
     @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.dismiss) private var dismiss
     
+    // Bindings passed from SettingsView to edit the configuration directly
+    @Binding var openClawHost: String
+    @Binding var openClawPort: String
+    @Binding var openClawGatewayToken: String
+    @Binding var webrtcSignalingURL: String
+    @Binding var geminiAPIKey: String
+    
     var body: some View {
         ZStack {
             AnimatedBackground()
@@ -70,14 +77,14 @@ struct AIBackendView: View {
                                 .padding(.leading, 8)
                             
                             VStack(spacing: 1) {
-                                NavigationLink(destination: Text("OpenClaw Config Detail")) { // Placeholder for now or link to main settings sections
+                                NavigationLink(destination: OpenClawConnectionSettingsView(openClawHost: $openClawHost, openClawPort: $openClawPort, openClawGatewayToken: $openClawGatewayToken, webrtcSignalingURL: $webrtcSignalingURL)) {
                                     ConfigStatusRow(title: "OpenClaw Settings", 
                                                    isConfigured: GeminiConfig.isOpenClawConfigured)
                                 }
                                 
                                 Divider().background(Color.white.opacity(0.1))
                                 
-                                NavigationLink(destination: Text("Gemini Config Detail")) {
+                                NavigationLink(destination: GeminiConnectionSettingsView(geminiAPIKey: $geminiAPIKey)) {
                                     ConfigStatusRow(title: "Gemini Settings", 
                                                    isConfigured: GeminiConfig.isConfigured)
                                 }
@@ -91,6 +98,8 @@ struct AIBackendView: View {
             }
         }
         .navigationBarHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
     }
 }
 
