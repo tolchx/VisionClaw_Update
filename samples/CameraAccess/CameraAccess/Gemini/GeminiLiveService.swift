@@ -149,29 +149,25 @@ class GeminiLiveService: ObservableObject {
   }
 
   func sendToolResponse(_ response: [String: Any]) {
-    sendQueue.async { [weak self] in
-      self?.sendJSON(response)
-    }
+    sendJSON(response)
   }
 
   func sendTextMessage(_ text: String) {
     guard connectionState == .ready else { return }
-    sendQueue.async { [weak self] in
-      let json: [String: Any] = [
-        "clientContent": [
-          "turns": [
-            [
-              "role": "user",
-              "parts": [
-                ["text": text]
-              ]
+    let json: [String: Any] = [
+      "clientContent": [
+        "turns": [
+          [
+            "role": "user",
+            "parts": [
+              ["text": text]
             ]
-          ],
-          "turnComplete": true
-        ]
+          ]
+        ],
+        "turnComplete": true
       ]
-      self?.sendJSON(json)
-    }
+    ]
+    sendJSON(json)
   }
 
   // MARK: - Private
@@ -226,7 +222,9 @@ class GeminiLiveService: ObservableObject {
           let string = String(data: data, encoding: .utf8) else {
       return
     }
-    webSocketTask?.send(.string(string)) { _ in }
+    Task { @MainActor in
+      self.webSocketTask?.send(.string(string)) { _ in }
+    }
   }
 
   private func startReceiving() {
