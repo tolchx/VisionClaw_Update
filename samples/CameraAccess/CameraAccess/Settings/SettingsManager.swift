@@ -22,6 +22,8 @@ final class SettingsManager: ObservableObject {
     case ttsVoice
     case activationSound
     case offlineModelURL
+    case isOfflineModelInstalled
+    case memories
   }
 
   private init() {}
@@ -118,13 +120,24 @@ final class SettingsManager: ObservableObject {
     set { defaults.set(newValue, forKey: Key.offlineModelURL.rawValue) }
   }
 
+  var isOfflineModelInstalled: Bool {
+    get { defaults.bool(forKey: Key.isOfflineModelInstalled.rawValue) }
+    set { defaults.set(newValue, forKey: Key.isOfflineModelInstalled.rawValue) }
+  }
+
+  var memories: [String] {
+    get { defaults.stringArray(forKey: Key.memories.rawValue) ?? [] }
+    set { defaults.set(newValue, forKey: Key.memories.rawValue) }
+  }
+
   // MARK: - Reset
 
   func resetAll() {
     for key in [Key.geminiAPIKey, .geminiSystemPrompt, .openClawHost, .openClawPort,
                 .openClawHookToken, .openClawGatewayToken, .webrtcSignalingURL,
                 .activeAIBackend, .autoReconnect, .showTranscripts, .enableWakeWord,
-                .wakePhrase, .autoEndTimeout, .ttsVoice, .activationSound, .offlineModelURL] {
+                .wakePhrase, .autoEndTimeout, .ttsVoice, .activationSound, .offlineModelURL,
+                .isOfflineModelInstalled, .memories] {
       defaults.removeObject(forKey: key.rawValue)
     }
   }

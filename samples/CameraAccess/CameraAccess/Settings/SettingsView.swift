@@ -29,7 +29,9 @@ struct SettingsView: View {
               CategoryRow(title: "Custom Instructions", icon: "text.quote", iconColor: .cyan)
             }
             
-            CategoryRow(title: "Memories", value: "0", icon: "brain", iconColor: .purple)
+            NavigationLink(destination: MemoriesSettingsView()) {
+              CategoryRow(title: "Memories", value: "\(settings.memories.count)", icon: "brain", iconColor: .purple)
+            }
           }
           .listRowBackground(Color.white.opacity(0.05))
           
@@ -62,10 +64,6 @@ struct SettingsView: View {
           Section(header: Text("Advanced").foregroundColor(.gray)) {
             ToggleRow(title: "Auto-Reconnect", isOn: $settings.autoReconnect)
             ToggleRow(title: "Show Transcripts", isOn: $settings.showTranscripts)
-            
-            NavigationLink(destination: OpenClawConnectionSettingsView(openClawHost: $openClawHost, openClawPort: $openClawPort, openClawGatewayToken: $openClawGatewayToken, webrtcSignalingURL: $webrtcSignalingURL)) {
-                CategoryRow(title: "Connection Settings", icon: "link", iconColor: .gray)
-            }
           }
           .listRowBackground(Color.white.opacity(0.05))
           

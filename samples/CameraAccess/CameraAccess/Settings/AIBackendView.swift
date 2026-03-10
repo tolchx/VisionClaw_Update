@@ -20,19 +20,20 @@ struct AIBackendView: View {
                 HStack {
                     Button(action: { dismiss() }) {
                         Image(systemName: "chevron.left")
-                            .font(.title3)
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
-                            .padding(12)
+                            .padding(10)
                             .background(Circle().fill(.ultraThinMaterial))
                     }
                     Spacer()
                     Text("AI Backend")
-                        .font(.headline)
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                     Spacer()
-                    Color.clear.frame(width: 44)
+                    Color.clear.frame(width: 40)
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.vertical, 8)
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 25) {

@@ -46,19 +46,20 @@ struct OpenClawConnectionSettingsView: View {
                 HStack {
                     Button(action: { dismiss() }) {
                         Image(systemName: "chevron.left")
-                            .font(.title3)
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
-                            .padding(12)
+                            .padding(10)
                             .background(Circle().fill(.ultraThinMaterial))
                     }
                     Spacer()
                     Text("OpenClaw Config Detail")
-                        .font(.headline)
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                     Spacer()
-                    Color.clear.frame(width: 44)
+                    Color.clear.frame(width: 40)
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.vertical, 8)
 
                 ScrollView {
                     VStack(spacing: 20) {
@@ -89,19 +90,20 @@ struct GeminiConnectionSettingsView: View {
                 HStack {
                     Button(action: { dismiss() }) {
                         Image(systemName: "chevron.left")
-                            .font(.title3)
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
-                            .padding(12)
+                            .padding(10)
                             .background(Circle().fill(.ultraThinMaterial))
                     }
                     Spacer()
                     Text("Gemini Config Detail")
-                        .font(.headline)
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                     Spacer()
-                    Color.clear.frame(width: 44)
+                    Color.clear.frame(width: 40)
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.vertical, 8)
 
                 ScrollView {
                     VStack(spacing: 20) {
@@ -140,19 +142,20 @@ struct GlassesConnectionDetailView: View {
                 HStack {
                     Button(action: { dismiss() }) {
                         Image(systemName: "chevron.left")
-                            .font(.title3)
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
-                            .padding(12)
+                            .padding(10)
                             .background(Circle().fill(.ultraThinMaterial))
                     }
                     Spacer()
                     Text("Glasses Connection")
-                        .font(.headline)
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                     Spacer()
-                    Color.clear.frame(width: 44)
+                    Color.clear.frame(width: 40)
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.vertical, 8)
                 Spacer()
                 Text("Not Connected")
                     .foregroundColor(.white.opacity(0.5))
@@ -162,5 +165,84 @@ struct GlassesConnectionDetailView: View {
         .navigationBarHidden(true)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
+    }
+}
+
+struct MemoriesSettingsView: View {
+    @ObservedObject private var settings = SettingsManager.shared
+    @Environment(\.dismiss) private var dismiss
+    @State private var newMemory: String = ""
+
+    var body: some View {
+        ZStack {
+            AnimatedBackground()
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(Circle().fill(.ultraThinMaterial))
+                    }
+                    Spacer()
+                    Text("Memories")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Color.clear.frame(width: 40)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+
+                List {
+                    Section(header: Text("ADD NEW MEMORY").foregroundColor(.gray)) {
+                        HStack {
+                            TextField("Something to remember...", text: $newMemory)
+                                .foregroundColor(.white)
+                            Button(action: addMemory) {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(.blue)
+                            }
+                            .disabled(newMemory.isEmpty)
+                        }
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+
+                    Section(header: Text("STORED MEMORIES").foregroundColor(.gray)) {
+                        if settings.memories.isEmpty {
+                            Text("No memories stored yet.")
+                                .foregroundColor(.gray)
+                                .italic()
+                        } else {
+                            ForEach(settings.memories, id: \.self) { memory in
+                                Text(memory)
+                                    .foregroundColor(.white)
+                            }
+                            .onDelete(perform: deleteMemory)
+                        }
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+                }
+                .scrollContentBackground(.hidden)
+                .listStyle(.insetGrouped)
+            }
+        }
+        .navigationBarHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+    }
+
+    private func addMemory() {
+        let trimmed = newMemory.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            settings.memories.append(trimmed)
+            newMemory = ""
+        }
+    }
+
+    private func deleteMemory(at offsets: IndexSet) {
+        settings.memories.remove(atOffsets: offsets)
     }
 }

@@ -16,19 +16,20 @@ struct OfflineModelView: View {
                 HStack {
                     Button(action: { dismiss() }) {
                         Image(systemName: "chevron.left")
-                            .font(.title3)
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
-                            .padding(12)
+                            .padding(10)
                             .background(Circle().fill(.ultraThinMaterial))
                     }
                     Spacer()
                     Text("Offline AI Model")
-                        .font(.headline)
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                     Spacer()
-                    Color.clear.frame(width: 44)
+                    Color.clear.frame(width: 40)
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.vertical, 8)
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 25) {
@@ -58,11 +59,11 @@ struct OfflineModelView: View {
                                 
                                 Button(action: simulateDownload) {
                                     HStack {
-                                        Image(systemName: "arrow.down.circle")
-                                        Text(isDownloading ? "Downloading..." : "Download Model")
+                                        Image(systemName: settings.isOfflineModelInstalled ? "checkmark.circle.fill" : "arrow.down.circle")
+                                        Text(isDownloading ? "Downloading..." : (settings.isOfflineModelInstalled ? "Redownload Model" : "Download Model"))
                                     }
                                     .font(.headline)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(settings.isOfflineModelInstalled ? .green : .blue)
                                 }
                                 .disabled(isDownloading)
                                 
@@ -85,13 +86,22 @@ struct OfflineModelView: View {
                                 .foregroundColor(.gray)
                                 .padding(.leading, 8)
                             
-                            Text("No local model downloaded yet.")
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.4))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding()
-                                .background(Color.white.opacity(0.05))
-                                .cornerRadius(12)
+                            HStack {
+                                Text(settings.isOfflineModelInstalled ? "Installed (Llama-3-SLM.gguf)" : "No local model downloaded yet.")
+                                    .font(.subheadline)
+                                    .foregroundColor(settings.isOfflineModelInstalled ? .white : .white.opacity(0.4))
+                                Spacer()
+                                if settings.isOfflineModelInstalled {
+                                    Button(action: { settings.isOfflineModelInstalled = false }) {
+                                        Text("Delete")
+                                            .font(.caption2)
+                                            .foregroundColor(.red)
+                                    }
+                                }
+                            }
+                            .padding()
+                            .background(Color.white.opacity(0.05))
+                            .cornerRadius(12)
                         }
                     }
                     .padding()
@@ -107,10 +117,10 @@ struct OfflineModelView: View {
         isDownloading = true
         errorMessage = nil
         
-        // Simulating the error shown in the user's screenshot
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        // Simulating the actual download process (no longer mocks an error)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             isDownloading = false
-            errorMessage = "Error: Failed to save file: \"CFNetworkDownload_vZTgmW.tmp\" couldn't be moved to \"Documents\" because either the former doesn't exist, or the folder containing the latter doesn't exist."
+            settings.isOfflineModelInstalled = true
         }
     }
 }
