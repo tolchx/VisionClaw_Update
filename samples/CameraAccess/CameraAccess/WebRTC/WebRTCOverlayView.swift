@@ -12,10 +12,30 @@ struct WebRTCStatusBar: View {
       }
 
       if webrtcVM.connectionState == .connected {
-        StatusPill(
-          color: webrtcVM.isMuted ? .red : .green,
-          text: webrtcVM.isMuted ? "Muted" : "Mic On"
-        )
+        // Mute Toggle
+        Button(action: { webrtcVM.toggleMute() }) {
+          HStack(spacing: 4) {
+            Image(systemName: webrtcVM.isMuted ? "mic.slash.fill" : "mic.fill")
+              .font(.system(size: 10))
+            Text(webrtcVM.isMuted ? "Muted" : "Mic On")
+              .font(.system(size: 12, weight: .bold))
+          }
+          .padding(.horizontal, 10)
+          .padding(.vertical, 6)
+          .background(webrtcVM.isMuted ? Color.red : Color.green)
+          .foregroundColor(.white)
+          .cornerRadius(16)
+        }
+
+        // Speaker Toggle
+        Button(action: { webrtcVM.toggleSpeaker() }) {
+          Image(systemName: webrtcVM.isSpeakerOn ? "speaker.wave.3.fill" : "speaker.wave.1")
+            .font(.system(size: 12, weight: .bold))
+            .padding(8)
+            .background(webrtcVM.isSpeakerOn ? Color.blue : Color.black.opacity(0.6))
+            .foregroundColor(.white)
+            .clipShape(Circle())
+        }
       }
     }
   }

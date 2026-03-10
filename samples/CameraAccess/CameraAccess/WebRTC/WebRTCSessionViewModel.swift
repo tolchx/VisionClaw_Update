@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import WebRTC
+import AVFoundation
 
 enum WebRTCConnectionState: Equatable {
   case disconnected
@@ -22,6 +23,7 @@ class WebRTCSessionViewModel: ObservableObject {
   @Published var errorMessage: String?
   @Published var remoteVideoTrack: RTCVideoTrack?
   @Published var hasRemoteVideo: Bool = false
+  @Published var isSpeakerOn: Bool = false
 
   private var webRTCClient: WebRTCClient?
   private var signalingClient: SignalingClient?
@@ -62,6 +64,7 @@ class WebRTCSessionViewModel: ObservableObject {
     roomCode = ""
     savedRoomCode = nil
     isMuted = false
+    isSpeakerOn = false
     remoteVideoTrack = nil
     hasRemoteVideo = false
   }
@@ -69,6 +72,18 @@ class WebRTCSessionViewModel: ObservableObject {
   func toggleMute() {
     isMuted.toggle()
     webRTCClient?.muteAudio(isMuted)
+  }
+
+  func toggleSpeaker() {
+    isSpeakerOn.toggle()
+    let session = AVAudioSession.sharedInstance()
+    do {
+      try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothHFP, .defaultToSpeaker])
+      try session.overrideOutputAudioPort(isSpeakerOn ? .speaker : .none)
+      try session.setActive(true)
+    } catch {
+      NSLog("[Audio] Error toggling speaker: %@", error.localizedDescription)
+    }
   }
 
   /// Called by StreamSessionViewModel on each video frame.

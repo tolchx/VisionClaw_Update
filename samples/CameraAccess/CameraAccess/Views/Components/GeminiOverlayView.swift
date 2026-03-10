@@ -10,6 +10,16 @@ struct GeminiStatusBar: View {
 
       // OpenClaw connection pill
       StatusPill(color: openClawStatusColor, text: openClawStatusText)
+
+      // Speaker Toggle
+      Button(action: { geminiVM.toggleSpeaker() }) {
+        Image(systemName: geminiVM.isSpeakerOn ? "speaker.wave.3.fill" : "speaker.wave.1")
+          .font(.system(size: 12, weight: .bold))
+          .padding(8)
+          .background(geminiVM.isSpeakerOn ? Color.blue : Color.black.opacity(0.6))
+          .foregroundColor(.white)
+          .clipShape(Circle())
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import AVFoundation
 
 @MainActor
 class GeminiSessionViewModel: ObservableObject {
@@ -13,6 +14,7 @@ class GeminiSessionViewModel: ObservableObject {
   @Published var currentSessionId = UUID()
   @Published var toolCallStatus: ToolCallStatus = .idle
   @Published var openClawConnectionState: OpenClawConnectionState = .notConfigured
+  @Published var isSpeakerOn: Bool = false
   private let geminiService = GeminiLiveService()
   private let openClawBridge = OpenClawBridge()
   private var toolCallRouter: ToolCallRouter?
@@ -197,10 +199,23 @@ class GeminiSessionViewModel: ObservableObject {
     isGeminiActive = false
     connectionState = .disconnected
     isModelSpeaking = false
+    isSpeakerOn = false
     userTranscript = ""
     aiTranscript = ""
     messages = []
     toolCallStatus = .idle
+  }
+
+  func toggleSpeaker() {
+    isSpeakerOn.toggle()
+    let session = AVAudioSession.sharedInstance()
+    do {
+      try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothHFP, .defaultToSpeaker])
+      try session.overrideOutputAudioPort(isSpeakerOn ? .speaker : .none)
+      try session.setActive(true)
+    } catch {
+      NSLog("[Audio] Error toggling speaker: %@", error.localizedDescription)
+    }
   }
 
   func sendVideoFrameIfThrottled(image: UIImage) {
